@@ -7,6 +7,7 @@ import { AssetMap, type AssetMapBounds } from '@/components/asset-map'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
 import { CreateAssetDrawer } from '@/components/create-asset-drawer'
+import { DeleteAssetDialog } from '@/components/delete-asset-dialog'
 import { EditAssetDrawer } from '@/components/edit-asset-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
@@ -24,6 +25,7 @@ export function AssetsPage() {
   const [selectedAssetId, setSelectedAssetId] = useState<string>()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset>()
+  const [deletingAsset, setDeletingAsset] = useState<Asset>()
   const [mapBounds, setMapBounds] = useState<AssetMapBounds>()
   const [offset, setOffset] = useState(0)
   const query = {
@@ -175,6 +177,7 @@ export function AssetsPage() {
           <AssetDetails
             asset={selectedAsset}
             onClose={() => setSelectedAssetId(undefined)}
+            onDelete={setDeletingAsset}
             onEdit={(asset) => {
               setSelectedAssetId(undefined)
               setEditingAsset(asset)
@@ -200,6 +203,14 @@ export function AssetsPage() {
         onUpdated={(asset) => {
           setEditingAsset(undefined)
           setSelectedAssetId(asset.id)
+        }}
+      />
+      <DeleteAssetDialog
+        asset={deletingAsset}
+        onClose={() => setDeletingAsset(undefined)}
+        onDeleted={() => {
+          setDeletingAsset(undefined)
+          setSelectedAssetId(undefined)
         }}
       />
     </div>

@@ -120,3 +120,13 @@ export async function updateAsset(
 
   return response.json() as Promise<Asset>
 }
+
+export async function deleteAsset(id: string): Promise<void> {
+  const response = await fetch(`/api/assets/${id}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw await getApiError(response, 'Failed to delete asset')
+  }
+}

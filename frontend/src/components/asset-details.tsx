@@ -32,6 +32,7 @@ function formatDate(value: string) {
 type AssetDetailsProps = {
   asset?: Asset
   onClose: () => void
+  onDelete: (asset: Asset) => void
   onEdit: (asset: Asset) => void
 }
 
@@ -109,9 +110,11 @@ function DetailsFields({ asset }: { asset: Asset }) {
 
 function DetailsActions({
   className,
+  onDelete,
   onEdit,
 }: {
   className: string
+  onDelete: () => void
   onEdit: () => void
 }) {
   return (
@@ -120,7 +123,7 @@ function DetailsActions({
         <Pencil data-icon="inline-start" />
         Edit
       </Button>
-      <Button type="button" variant="destructive">
+      <Button type="button" variant="destructive" onClick={onDelete}>
         <Trash2 data-icon="inline-start" />
         Delete
       </Button>
@@ -141,7 +144,12 @@ function CloseButton({ onClose }: { onClose: () => void }) {
   )
 }
 
-export function AssetDetails({ asset, onClose, onEdit }: AssetDetailsProps) {
+export function AssetDetails({
+  asset,
+  onClose,
+  onDelete,
+  onEdit,
+}: AssetDetailsProps) {
   const [displayedAsset, setDisplayedAsset] = useState(asset)
   const isWideLayout = useSyncExternalStore(
     subscribeToWideLayout,
@@ -177,6 +185,7 @@ export function AssetDetails({ asset, onClose, onEdit }: AssetDetailsProps) {
             </div>
             <DetailsActions
               className="grid grid-cols-2 gap-2 border-t p-4"
+              onDelete={() => onDelete(displayedAsset)}
               onEdit={() => onEdit(displayedAsset)}
             />
           </>
@@ -211,7 +220,11 @@ export function AssetDetails({ asset, onClose, onEdit }: AssetDetailsProps) {
                 <Pencil data-icon="inline-start" />
                 Edit
               </Button>
-              <Button type="button" variant="destructive">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => onDelete(displayedAsset)}
+              >
                 <Trash2 data-icon="inline-start" />
                 Delete
               </Button>
