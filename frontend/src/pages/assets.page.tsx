@@ -1,9 +1,9 @@
-import type { Asset, AssetStatus, AssetType } from '@asset-tracker/shared'
+import type { AssetStatus, AssetType } from '@asset-tracker/shared'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { AssetMap } from '@/components/asset-map'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
-import { MapPlaceholder } from '@/components/map-placeholder'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -17,7 +17,7 @@ const PAGE_SIZE = 25
 export function AssetsPage() {
   const [type, setType] = useState<TypeFilter>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
-  const [selectedId, setSelectedId] = useState<string>()
+  const [selectedAssetId, setSelectedAssetId] = useState<string>()
   const [offset, setOffset] = useState(0)
   const query = {
     type: type === 'all' ? undefined : type,
@@ -27,10 +27,7 @@ export function AssetsPage() {
   }
   const assetsQuery = useAssets(query)
   const assets = assetsQuery.data?.data ?? []
-  const selectedAsset =
-    assets.find((asset) => asset.id === selectedId) ?? assets[0]
-
-  const selectAsset = (asset: Asset) => setSelectedId(asset.id)
+  const selectAsset = useCallback((assetId: string) => setSelectedAssetId(assetId), [])
   const total = assetsQuery.data?.meta.total ?? 0
   const firstVisible = total === 0 ? 0 : offset + 1
   const lastVisible = Math.min(offset + assets.length, total)
@@ -40,11 +37,13 @@ export function AssetsPage() {
   const changeType = (value: TypeFilter) => {
     setType(value)
     setOffset(0)
+    setSelectedAssetId(undefined)
   }
 
   const changeStatus = (value: StatusFilter) => {
     setStatus(value)
     setOffset(0)
+    setSelectedAssetId(undefined)
   }
 
   return (
@@ -88,12 +87,12 @@ export function AssetsPage() {
             <CardContent className="min-h-0 flex-1 px-0">
               <AssetList
                 assets={assets}
-                selectedId={selectedAsset?.id}
+                selectedAssetId={selectedAssetId}
                 isLoading={assetsQuery.isPending}
                 isError={assetsQuery.isError}
                 errorMessage={assetsQuery.error?.message}
                 onRetry={() => void assetsQuery.refetch()}
-                onSelect={selectAsset}
+                onSelectAsset={selectAsset}
               />
             </CardContent>
             <CardFooter className="justify-between bg-background py-3">
@@ -106,7 +105,10 @@ export function AssetsPage() {
                   size="icon-sm"
                   aria-label="Previous page"
                   disabled={!hasPreviousPage || assetsQuery.isFetching}
-                  onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+                  onClick={() => {
+                    setOffset((current) => Math.max(0, current - PAGE_SIZE))
+                    setSelectedAssetId(undefined)
+                  }}
                 >
                   <ChevronLeft />
                 </Button>
@@ -115,7 +117,10 @@ export function AssetsPage() {
                   size="icon-sm"
                   aria-label="Next page"
                   disabled={!hasNextPage || assetsQuery.isFetching}
-                  onClick={() => setOffset((current) => current + PAGE_SIZE)}
+                  onClick={() => {
+                    setOffset((current) => current + PAGE_SIZE)
+                    setSelectedAssetId(undefined)
+                  }}
                 >
                   <ChevronRight />
                 </Button>
@@ -136,7 +141,11 @@ export function AssetsPage() {
             </CardHeader>
             <Separator />
             <CardContent className="min-h-0 flex-1 p-3">
-              <MapPlaceholder selectedAsset={selectedAsset} />
+              <AssetMap
+                assets={assets}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={selectAsset}
+              />
             </CardContent>
           </Card>
         </div>
