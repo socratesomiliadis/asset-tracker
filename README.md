@@ -12,16 +12,16 @@ A small full-stack TypeScript starter with a React frontend, an Express API, and
 ## Prerequisites
 
 - Node.js 20 or newer
-- npm 10 or newer
+- pnpm 11 or newer
 - Docker with Docker Compose
 
 ## Getting started
 
 ```bash
 cp .env.example .env
-npm install
-npm run db:up
-npm run dev
+pnpm install
+pnpm db:up
+pnpm dev
 ```
 
 The frontend runs at [http://localhost:5173](http://localhost:5173) and proxies `/api` requests to the backend at [http://localhost:3001](http://localhost:3001).
@@ -32,16 +32,16 @@ Only PostgreSQL is containerized. The frontend and backend run directly on the h
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Run frontend and backend together |
-| `npm run build` | Build both workspaces |
-| `npm test` | Run the backend test suite |
-| `npm run typecheck` | Type-check both workspaces |
-| `npm run lint` | Lint the frontend |
-| `npm run db:up` | Start PostgreSQL |
-| `npm run db:down` | Stop PostgreSQL |
-| `npm run db:generate` | Generate a Drizzle migration after schema changes |
-| `npm run db:migrate` | Apply committed Drizzle migrations |
-| `npm run db:push` | Push the current schema directly during local prototyping |
+| `pnpm dev` | Run frontend and backend together |
+| `pnpm build` | Build both workspaces |
+| `pnpm test` | Run the backend test suite |
+| `pnpm typecheck` | Type-check both workspaces |
+| `pnpm lint` | Lint the frontend |
+| `pnpm db:up` | Start PostgreSQL |
+| `pnpm db:down` | Stop PostgreSQL |
+| `pnpm db:generate` | Generate a Drizzle migration after schema changes |
+| `pnpm db:migrate` | Apply committed Drizzle migrations |
+| `pnpm db:push` | Push the current schema directly during local prototyping |
 
 ## Layout
 
@@ -63,5 +63,5 @@ To add more shadcn/ui components, run the CLI from the frontend workspace:
 
 ```bash
 cd frontend
-npx shadcn@latest add <component>
+pnpm dlx shadcn@latest add <component>
 ```
