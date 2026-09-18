@@ -52,9 +52,12 @@ Only PostgreSQL is containerized. The frontend and backend run directly on the h
 .
 ├── backend/
 │   └── src/
-│       ├── db/           # Drizzle client and schema
-│       ├── app.ts        # Express application and routes
-│       └── server.ts     # HTTP server entry point
+│       ├── db/            # Drizzle client, schema, and seed
+│       ├── repositories/  # PostgreSQL data access
+│       ├── routes/        # Express routers
+│       ├── services/      # Application operations
+│       ├── app.ts         # Express middleware and router mounting
+│       └── server.ts      # HTTP server entry point
 ├── frontend/
 │   └── src/
 │       ├── App.tsx       # React application shell
