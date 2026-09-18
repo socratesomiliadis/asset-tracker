@@ -56,7 +56,15 @@ Only PostgreSQL is containerized. The frontend and backend run directly on the h
 │   └── src/
 │       ├── App.tsx       # React application shell
 │       └── lib/          # shadcn utilities
+├── shared/
+│   └── src/              # Shared domain types and Zod schemas
 └── docker-compose.yml
+```
+
+The frontend and backend both depend on the `@asset-tracker/shared` workspace package:
+
+```ts
+import { assetSchema, type Asset } from '@asset-tracker/shared'
 ```
 
 To add more shadcn/ui components, run the CLI from the frontend workspace:

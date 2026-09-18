@@ -5,10 +5,11 @@
   "packageManager": "pnpm@11.18.0",
   "workspaces": [
     "frontend",
-    "backend"
+    "backend",
+    "shared"
   ],
   "scripts": {
-    "dev": "concurrently -n frontend,backend -c cyan,magenta \"pnpm --filter frontend dev\" \"pnpm --filter backend dev\"",
+    "dev": "pnpm --filter @asset-tracker/shared build && concurrently -n shared,frontend,backend -c yellow,cyan,magenta \"pnpm --filter @asset-tracker/shared dev\" \"pnpm --filter frontend dev\" \"pnpm --filter backend dev\"",
     "build": "pnpm -r --if-present run build",
     "test": "pnpm -r --if-present run test",
     "typecheck": "pnpm -r --if-present run typecheck",
