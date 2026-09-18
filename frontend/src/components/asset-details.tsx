@@ -100,7 +100,7 @@ function DetailsFields({ asset }: { asset: Asset }) {
 
       <div>
         <dt className="text-xs font-medium text-muted-foreground">Notes</dt>
-        <dd className="mt-2 rounded-lg border bg-muted/40 p-3 text-sm leading-relaxed">
+        <dd className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere] rounded-lg border bg-muted/40 p-3 text-sm leading-relaxed">
           {asset.notes.trim() || 'No notes provided.'}
         </dd>
       </div>
@@ -175,7 +175,7 @@ export function AssetDetails({
           <>
             <CloseButton onClose={onClose} />
             <div className="border-b p-4 pr-14">
-              <h2 className="text-lg font-medium">{displayedAsset.name}</h2>
+              <h2 className="text-lg font-medium [overflow-wrap:anywhere]">{displayedAsset.name}</h2>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 Asset details and maintenance information.
               </p>
@@ -203,7 +203,7 @@ export function AssetDetails({
           <DrawerContent>
             <CloseButton onClose={onClose} />
             <DrawerHeader className="border-b pb-4 pr-14">
-              <DrawerTitle className="text-lg">{displayedAsset.name}</DrawerTitle>
+              <DrawerTitle className="text-lg [overflow-wrap:anywhere]">{displayedAsset.name}</DrawerTitle>
               <DrawerDescription>
                 Asset details and maintenance information.
               </DrawerDescription>

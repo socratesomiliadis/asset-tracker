@@ -35,7 +35,7 @@ export function CreateAssetDrawer({
     createAsset.mutate(values, {
       onSuccess: (asset) => {
         toast.success('Asset created', {
-          description: `${asset.name} is now available in the asset list.`,
+          description: `${asset.name} has been saved.`,
         })
         onCreated(asset)
       },

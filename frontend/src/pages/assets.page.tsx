@@ -18,6 +18,7 @@ type TypeFilter = AssetType | 'all'
 type StatusFilter = AssetStatus | 'all'
 
 const PAGE_SIZE = 25
+const EMPTY_ASSETS: Asset[] = []
 
 export function AssetsPage() {
   const [type, setType] = useState<TypeFilter>('all')
@@ -36,7 +37,7 @@ export function AssetsPage() {
     offset,
   }
   const assetsQuery = useAssets(query)
-  const assets = assetsQuery.data?.data ?? []
+  const assets = assetsQuery.isError ? EMPTY_ASSETS : assetsQuery.data?.data ?? EMPTY_ASSETS
   const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
   const selectAsset = useCallback((assetId: string) => setSelectedAssetId(assetId), [])
   const searchMapArea = useCallback((bounds: AssetMapBounds) => {
@@ -44,9 +45,23 @@ export function AssetsPage() {
     setOffset(0)
     setSelectedAssetId(undefined)
   }, [])
-  const total = assetsQuery.data?.meta.total ?? 0
-  const firstVisible = total === 0 ? 0 : offset + 1
-  const lastVisible = Math.min(offset + assets.length, total)
+  const total = assetsQuery.isError ? 0 : assetsQuery.data?.meta.total ?? 0
+  // A deletion or edit can remove the final item on the current page.
+  if (assetsQuery.isSuccess && !assetsQuery.isFetching) {
+    const lastOffset = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1) * PAGE_SIZE
+    if (offset > lastOffset) setOffset(lastOffset)
+    if (selectedAssetId && !assets.some((asset) => asset.id === selectedAssetId)) {
+      setSelectedAssetId(undefined)
+    }
+  }
+
+  const clearMapArea = () => {
+    setMapBounds(undefined)
+    setOffset(0)
+    setSelectedAssetId(undefined)
+  }
+  const firstVisible = assets.length === 0 ? 0 : offset + 1
+  const lastVisible = assets.length === 0 ? 0 : Math.min(offset + assets.length, total)
   const hasPreviousPage = offset > 0
   const hasNextPage = offset + assets.length < total
 
@@ -94,7 +109,9 @@ export function AssetsPage() {
                 <div>
                   <p className="font-medium">Asset list</p>
                   <p className="text-xs text-muted-foreground">
-                    {assetsQuery.data
+                    {assetsQuery.isError
+                      ? 'Assets unavailable'
+                      : assetsQuery.data
                       ? `${assetsQuery.data.meta.total} matching assets`
                       : 'Loading assets'}
                   </p>
@@ -127,7 +144,7 @@ export function AssetsPage() {
                   variant="outline"
                   size="icon-sm"
                   aria-label="Previous page"
-                  disabled={!hasPreviousPage || assetsQuery.isFetching}
+                  disabled={!hasPreviousPage || assetsQuery.isFetching || assetsQuery.isError}
                   onClick={() => {
                     setOffset((current) => Math.max(0, current - PAGE_SIZE))
                     setSelectedAssetId(undefined)
@@ -139,7 +156,7 @@ export function AssetsPage() {
                   variant="outline"
                   size="icon-sm"
                   aria-label="Next page"
-                  disabled={!hasNextPage || assetsQuery.isFetching}
+                  disabled={!hasNextPage || assetsQuery.isFetching || assetsQuery.isError}
                   onClick={() => {
                     setOffset((current) => current + PAGE_SIZE)
                     setSelectedAssetId(undefined)
@@ -159,7 +176,7 @@ export function AssetsPage() {
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="size-2 rounded-full bg-emerald-500" />
-                Live data
+                {assetsQuery.isError ? 'Unavailable' : assetsQuery.isFetching ? 'Updating…' : 'Live data'}
               </div>
             </CardHeader>
             <Separator />
@@ -170,6 +187,10 @@ export function AssetsPage() {
                 hasActiveAreaSearch={Boolean(mapBounds)}
                 onSelectAsset={selectAsset}
                 onSearchArea={searchMapArea}
+                onClearArea={clearMapArea}
+                isLoading={assetsQuery.isPending}
+                isError={assetsQuery.isError}
+                onRetry={() => void assetsQuery.refetch()}
               />
             </CardContent>
           </Card>
@@ -190,7 +211,9 @@ export function AssetsPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onCreated={() => {
-          setOffset(0)
+          clearMapArea()
+          setType('all')
+          setStatus('all')
           setIsCreateOpen(false)
         }}
       />
@@ -202,7 +225,7 @@ export function AssetsPage() {
         }}
         onUpdated={(asset) => {
           setEditingAsset(undefined)
-          setSelectedAssetId(asset.id)
+          setSelectedAssetId(assets.some((item) => item.id === asset.id) ? asset.id : undefined)
         }}
       />
       <DeleteAssetDialog

@@ -115,6 +115,7 @@ export function AssetForm(props: AssetFormProps) {
   )
 
   const submitForm = handleSubmit((values) => {
+    if (props.isSubmitting) return
     if (props.mode === 'create') {
       props.onSubmit?.(values)
     } else {
@@ -291,6 +292,7 @@ export function AssetForm(props: AssetFormProps) {
           <Textarea
             id={`${formId}-notes`}
             rows={4}
+            className="max-h-64 overflow-y-auto"
             placeholder="Add maintenance or inspection notes"
             aria-invalid={Boolean(errors.notes)}
             {...register('notes')}

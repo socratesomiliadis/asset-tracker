@@ -16,11 +16,15 @@ function getLocation(
   latitude: number | undefined,
   longitude: number | undefined,
 ): AssetLocation | null {
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  if (
+    latitude === undefined || longitude === undefined ||
+    !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+    latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180
+  ) return null
 
   return {
-    lat: latitude as number,
-    lng: longitude as number,
+    lat: latitude,
+    lng: longitude,
   }
 }
 
@@ -71,7 +75,7 @@ export function AssetLocationPicker({
     map.on('click', (event) => {
       const nextLocation = {
         lat: event.lngLat.lat,
-        lng: event.lngLat.lng,
+        lng: event.lngLat.wrap().lng,
       }
 
       if (markerRef.current) {

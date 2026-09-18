@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getAssets, type GetAssetsParams } from '@/lib/assets-api'
 
 export const assetQueryKeys = {
@@ -10,6 +10,5 @@ export function useAssets(params: GetAssetsParams) {
   return useQuery({
     queryKey: assetQueryKeys.list(params),
     queryFn: () => getAssets(params),
-    placeholderData: keepPreviousData,
   })
 }

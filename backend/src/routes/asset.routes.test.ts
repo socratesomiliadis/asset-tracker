@@ -158,3 +158,17 @@ describe('asset API', () => {
     })
   })
 })
+
+ it('returns an actionable error for notes exceeding the request limit', async () => {
+   const response = await request(app).post('/api/assets').send({ ...createInput, notes: 'x'.repeat(110_000) })
+   expect(response.status).toBe(413)
+   expect(response.body.error.code).toBe('PAYLOAD_TOO_LARGE')
+   expect(serviceMock.create).not.toHaveBeenCalled()
+ })
+
+ it('returns 400 instead of a server error for malformed JSON', async () => {
+   const response = await request(app).post('/api/assets').set('Content-Type', 'application/json').send('{')
+   expect(response.status).toBe(400)
+   expect(response.body.error.code).toBe('INVALID_JSON')
+   expect(serviceMock.create).not.toHaveBeenCalled()
+ })
