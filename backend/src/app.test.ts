@@ -116,7 +116,8 @@ describe('GET /api/assets', () => {
       const response = await request(app).get(url)
 
       expect(response.status).toBe(400)
-      expect(response.body.error).toBe('Invalid query parameters')
+      expect(response.body.error.code).toBe('INVALID_QUERY_PARAMETERS')
+      expect(response.body.error.details).toBeDefined()
       expect(serviceMock.findMany).not.toHaveBeenCalled()
     },
   )
@@ -127,7 +128,8 @@ describe('GET /api/assets', () => {
       const response = await request(app).get(url)
 
       expect(response.status).toBe(400)
-      expect(response.body.error).toBe('Invalid query parameters')
+      expect(response.body.error.code).toBe('INVALID_QUERY_PARAMETERS')
+      expect(response.body.error.details).toBeDefined()
       expect(serviceMock.findMany).not.toHaveBeenCalled()
     },
   )
@@ -141,9 +143,30 @@ describe('GET /api/assets', () => {
     const response = await request(app).get(url)
 
     expect(response.status).toBe(400)
-    expect(response.body.error).toBe('Invalid query parameters')
-    expect(response.body.message).toEqual(expect.any(String))
+    expect(response.body.error.code).toBe('INVALID_QUERY_PARAMETERS')
+    expect(response.body.error.message).toBe('Invalid query parameters')
+    expect(response.body.error.details).toBeDefined()
     expect(serviceMock.findMany).not.toHaveBeenCalled()
+  })
+
+  it('hides unexpected internal errors', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    serviceMock.findMany.mockRejectedValueOnce(
+      new Error('database connection string must not be exposed'),
+    )
+
+    const response = await request(app).get('/api/assets')
+
+    expect(response.status).toBe(500)
+    expect(response.body).toEqual({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An unexpected server error occurred',
+      },
+    })
+    expect(JSON.stringify(response.body)).not.toContain('database connection string')
+    expect(JSON.stringify(response.body)).not.toContain('stack')
+    consoleError.mockRestore()
   })
 })
 
@@ -162,13 +185,16 @@ describe('GET /api/assets/:id', () => {
     const response = await request(app).get(`/api/assets/${asset.id}`)
 
     expect(response.status).toBe(404)
-    expect(response.body).toEqual({ error: 'Asset not found' })
+    expect(response.body).toEqual({
+      error: { code: 'ASSET_NOT_FOUND', message: 'Asset not found' },
+    })
   })
 
   it('rejects an invalid UUID', async () => {
     const response = await request(app).get('/api/assets/not-a-uuid')
 
     expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('INVALID_ASSET_ID')
     expect(serviceMock.findById).not.toHaveBeenCalled()
   })
 })
@@ -188,7 +214,8 @@ describe('POST /api/assets', () => {
       .send({ ...createInput, type: 'meter' })
 
     expect(response.status).toBe(400)
-    expect(response.body.error).toBe('Invalid asset')
+    expect(response.body.error.code).toBe('INVALID_REQUEST_BODY')
+    expect(response.body.error.details).toBeDefined()
     expect(serviceMock.create).not.toHaveBeenCalled()
   })
 })
@@ -212,7 +239,8 @@ describe('PATCH /api/assets/:id', () => {
     const response = await request(app).patch(`/api/assets/${asset.id}`).send({})
 
     expect(response.status).toBe(400)
-    expect(response.body.error).toBe('Invalid asset update')
+    expect(response.body.error.code).toBe('INVALID_REQUEST_BODY')
+    expect(response.body.error.details).toBeDefined()
     expect(serviceMock.update).not.toHaveBeenCalled()
   })
 
@@ -224,7 +252,9 @@ describe('PATCH /api/assets/:id', () => {
       .send({ status: 'critical' })
 
     expect(response.status).toBe(404)
-    expect(response.body).toEqual({ error: 'Asset not found' })
+    expect(response.body).toEqual({
+      error: { code: 'ASSET_NOT_FOUND', message: 'Asset not found' },
+    })
   })
 })
 
@@ -243,6 +273,8 @@ describe('DELETE /api/assets/:id', () => {
     const response = await request(app).delete(`/api/assets/${asset.id}`)
 
     expect(response.status).toBe(404)
-    expect(response.body).toEqual({ error: 'Asset not found' })
+    expect(response.body).toEqual({
+      error: { code: 'ASSET_NOT_FOUND', message: 'Asset not found' },
+    })
   })
 })
