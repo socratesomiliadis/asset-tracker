@@ -23,6 +23,19 @@ describe('asset schemas', () => {
     expect(assetSchema.parse(asset)).toEqual(asset)
   })
 
+  it('accepts ISO dates used by seed data', () => {
+    expect(
+      assetSchema.parse({
+        ...asset,
+        installed_at: '2025-01-10',
+        last_inspected_at: '2025-02-15',
+      }),
+    ).toMatchObject({
+      installed_at: '2025-01-10',
+      last_inspected_at: '2025-02-15',
+    })
+  })
+
   it('validates create and partial update inputs', () => {
     const { id: _id, ...createInput } = asset
 

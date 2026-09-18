@@ -41,6 +41,7 @@ Only PostgreSQL is containerized. The frontend and backend run directly on the h
 | `pnpm db:down` | Stop PostgreSQL |
 | `pnpm db:generate` | Generate a Drizzle migration after schema changes |
 | `pnpm db:migrate` | Apply committed Drizzle migrations |
+| `pnpm db:seed` | Upsert all assets from `seed.json` |
 | `pnpm db:push` | Push the current schema directly during local prototyping |
 | `pnpm db:check` | Check generated migration consistency |
 | `pnpm db:studio` | Open Drizzle Studio |

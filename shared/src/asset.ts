@@ -4,7 +4,10 @@ export const assetTypeSchema = z.enum(['pipe', 'hydrant', 'sensor', 'valve'])
 
 export const assetStatusSchema = z.enum(['ok', 'warning', 'critical'])
 
-export const isoDateTimeSchema = z.iso.datetime({ offset: true })
+export const isoDateSchema = z.union([
+  z.iso.date(),
+  z.iso.datetime({ offset: true }),
+])
 
 export const assetSchema = z
   .object({
@@ -14,8 +17,8 @@ export const assetSchema = z
     status: assetStatusSchema,
     lat: z.number().min(-90).max(90),
     lng: z.number().min(-180).max(180),
-    installed_at: isoDateTimeSchema,
-    last_inspected_at: isoDateTimeSchema.nullable(),
+    installed_at: isoDateSchema,
+    last_inspected_at: isoDateSchema.nullable(),
     notes: z.string(),
   })
   .strict()
@@ -33,10 +36,10 @@ export const assetFiltersSchema = z
     search: z.string().optional(),
     type: assetTypeSchema.optional(),
     status: assetStatusSchema.optional(),
-    installed_from: isoDateTimeSchema.optional(),
-    installed_to: isoDateTimeSchema.optional(),
-    inspected_from: isoDateTimeSchema.optional(),
-    inspected_to: isoDateTimeSchema.optional(),
+    installed_from: isoDateSchema.optional(),
+    installed_to: isoDateSchema.optional(),
+    inspected_from: isoDateSchema.optional(),
+    inspected_to: isoDateSchema.optional(),
   })
   .strict()
 
