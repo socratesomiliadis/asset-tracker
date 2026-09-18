@@ -4,7 +4,7 @@ A small full-stack TypeScript starter with a React frontend, an Express API, and
 
 ## Stack
 
-- Frontend: React, Vite, TypeScript, TanStack Query, MapLibre GL, React Hook Form, Zod, Tailwind CSS, and shadcn/ui
+- Frontend: React, Vite, TypeScript, TanStack Query, MapLibre GL, React Hook Form, Zod, Tailwind CSS, and shadcn/ui with Base UI primitives and the Luma style
 - Backend: Express, TypeScript, Drizzle ORM, and Zod
 - Database: PostgreSQL 17 via Docker Compose
 - Tests: Vitest and Supertest
