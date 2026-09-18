@@ -19,7 +19,9 @@
     "db:logs": "docker compose logs -f db",
     "db:generate": "pnpm --filter backend db:generate",
     "db:migrate": "pnpm --filter backend db:migrate",
-    "db:push": "pnpm --filter backend db:push"
+    "db:push": "pnpm --filter backend db:push",
+    "db:check": "pnpm --filter backend db:check",
+    "db:studio": "pnpm --filter backend db:studio"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
