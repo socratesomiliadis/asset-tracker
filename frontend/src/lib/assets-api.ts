@@ -3,6 +3,7 @@ import type {
   AssetStatus,
   AssetType,
   CreateAssetInput,
+  UpdateAssetInput,
 } from '@asset-tracker/shared'
 
 type ApiErrorBody = {
@@ -96,6 +97,25 @@ export async function createAsset(input: CreateAssetInput): Promise<Asset> {
 
   if (!response.ok) {
     throw await getApiError(response, 'Failed to create asset')
+  }
+
+  return response.json() as Promise<Asset>
+}
+
+export async function updateAsset(
+  id: string,
+  input: UpdateAssetInput,
+): Promise<Asset> {
+  const response = await fetch(`/api/assets/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw await getApiError(response, 'Failed to update asset')
   }
 
   return response.json() as Promise<Asset>

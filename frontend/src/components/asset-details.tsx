@@ -32,6 +32,7 @@ function formatDate(value: string) {
 type AssetDetailsProps = {
   asset?: Asset
   onClose: () => void
+  onEdit: (asset: Asset) => void
 }
 
 function subscribeToWideLayout(onChange: () => void) {
@@ -106,10 +107,16 @@ function DetailsFields({ asset }: { asset: Asset }) {
   )
 }
 
-function DetailsActions({ className }: { className: string }) {
+function DetailsActions({
+  className,
+  onEdit,
+}: {
+  className: string
+  onEdit: () => void
+}) {
   return (
     <div className={className}>
-      <Button type="button" variant="outline">
+      <Button type="button" variant="outline" onClick={onEdit}>
         <Pencil data-icon="inline-start" />
         Edit
       </Button>
@@ -134,7 +141,7 @@ function CloseButton({ onClose }: { onClose: () => void }) {
   )
 }
 
-export function AssetDetails({ asset, onClose }: AssetDetailsProps) {
+export function AssetDetails({ asset, onClose, onEdit }: AssetDetailsProps) {
   const [displayedAsset, setDisplayedAsset] = useState(asset)
   const isWideLayout = useSyncExternalStore(
     subscribeToWideLayout,
@@ -143,7 +150,7 @@ export function AssetDetails({ asset, onClose }: AssetDetailsProps) {
   )
   const isOpen = Boolean(asset)
 
-  if (asset && asset.id !== displayedAsset?.id) setDisplayedAsset(asset)
+  if (asset && asset !== displayedAsset) setDisplayedAsset(asset)
 
   return (
     <>
@@ -168,7 +175,10 @@ export function AssetDetails({ asset, onClose }: AssetDetailsProps) {
             <div className="min-h-0 flex-1 overflow-y-auto px-4">
               <DetailsFields asset={displayedAsset} />
             </div>
-            <DetailsActions className="grid grid-cols-2 gap-2 border-t p-4" />
+            <DetailsActions
+              className="grid grid-cols-2 gap-2 border-t p-4"
+              onEdit={() => onEdit(displayedAsset)}
+            />
           </>
         )}
       </aside>
@@ -193,7 +203,11 @@ export function AssetDetails({ asset, onClose }: AssetDetailsProps) {
               <DetailsFields asset={displayedAsset} />
             </div>
             <DrawerFooter className="grid grid-cols-2 border-t pt-4">
-              <Button type="button" variant="outline">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onEdit(displayedAsset)}
+              >
                 <Pencil data-icon="inline-start" />
                 Edit
               </Button>

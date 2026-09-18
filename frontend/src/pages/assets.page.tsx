@@ -1,4 +1,4 @@
-import type { AssetStatus, AssetType } from '@asset-tracker/shared'
+import type { Asset, AssetStatus, AssetType } from '@asset-tracker/shared'
 import type { CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
@@ -7,6 +7,7 @@ import { AssetMap, type AssetMapBounds } from '@/components/asset-map'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
 import { CreateAssetDrawer } from '@/components/create-asset-drawer'
+import { EditAssetDrawer } from '@/components/edit-asset-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -22,6 +23,7 @@ export function AssetsPage() {
   const [status, setStatus] = useState<StatusFilter>('all')
   const [selectedAssetId, setSelectedAssetId] = useState<string>()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingAsset, setEditingAsset] = useState<Asset>()
   const [mapBounds, setMapBounds] = useState<AssetMapBounds>()
   const [offset, setOffset] = useState(0)
   const query = {
@@ -173,6 +175,10 @@ export function AssetsPage() {
           <AssetDetails
             asset={selectedAsset}
             onClose={() => setSelectedAssetId(undefined)}
+            onEdit={(asset) => {
+              setSelectedAssetId(undefined)
+              setEditingAsset(asset)
+            }}
           />
         </div>
       </main>
@@ -183,6 +189,17 @@ export function AssetsPage() {
         onCreated={() => {
           setOffset(0)
           setIsCreateOpen(false)
+        }}
+      />
+      <EditAssetDrawer
+        asset={editingAsset}
+        onClose={() => {
+          setEditingAsset(undefined)
+          setSelectedAssetId(editingAsset?.id)
+        }}
+        onUpdated={(asset) => {
+          setEditingAsset(undefined)
+          setSelectedAssetId(asset.id)
         }}
       />
     </div>
