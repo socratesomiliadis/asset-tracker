@@ -71,6 +71,22 @@ describe('GET /api/assets', () => {
     })
   })
 
+  it('passes a complete bounding box to the service', async () => {
+    const response = await request(app).get(
+      '/api/assets?minLat=40&maxLat=43&minLng=-75&maxLng=-70',
+    )
+
+    expect(response.status).toBe(200)
+    expect(serviceMock.findMany).toHaveBeenCalledWith({
+      minLat: 40,
+      maxLat: 43,
+      minLng: -75,
+      maxLng: -70,
+      limit: 50,
+      offset: 0,
+    })
+  })
+
   it.each(['/api/assets?limit=0', '/api/assets?limit=101', '/api/assets?offset=-1'])(
     'rejects invalid pagination for %s',
     async (url) => {
@@ -92,4 +108,18 @@ describe('GET /api/assets', () => {
       expect(serviceMock.findMany).not.toHaveBeenCalled()
     },
   )
+
+  it.each([
+    '/api/assets?minLat=40&maxLat=43&minLng=-75',
+    '/api/assets?minLat=-91&maxLat=43&minLng=-75&maxLng=-70',
+    '/api/assets?minLat=43&maxLat=40&minLng=-75&maxLng=-70',
+    '/api/assets?minLat=40&maxLat=43&minLng=-70&maxLng=-75',
+  ])('rejects invalid geographic queries for %s', async (url) => {
+    const response = await request(app).get(url)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('Invalid query parameters')
+    expect(response.body.message).toEqual(expect.any(String))
+    expect(serviceMock.findMany).not.toHaveBeenCalled()
+  })
 })

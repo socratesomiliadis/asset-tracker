@@ -43,6 +43,16 @@ export const assetFiltersSchema = z
   })
   .strict()
 
+const latitudeQuerySchema = z.preprocess(
+  (value) => (value === '' ? Number.NaN : value),
+  z.coerce.number().min(-90).max(90),
+)
+
+const longitudeQuerySchema = z.preprocess(
+  (value) => (value === '' ? Number.NaN : value),
+  z.coerce.number().min(-180).max(180),
+)
+
 export const assetQueryParamsSchema = assetFiltersSchema
   .extend({
     limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -51,8 +61,49 @@ export const assetQueryParamsSchema = assetFiltersSchema
       .enum(['name', 'type', 'status', 'installed_at', 'last_inspected_at'])
       .optional(),
     sort_order: z.enum(['asc', 'desc']).optional(),
+    minLat: latitudeQuerySchema.optional(),
+    maxLat: latitudeQuerySchema.optional(),
+    minLng: longitudeQuerySchema.optional(),
+    maxLng: longitudeQuerySchema.optional(),
   })
   .strict()
+  .superRefine((value, context) => {
+    const bounds = [value.minLat, value.maxLat, value.minLng, value.maxLng]
+    const providedBounds = bounds.filter((bound) => bound !== undefined).length
+
+    if (providedBounds > 0 && providedBounds < bounds.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'minLat, maxLat, minLng, and maxLng must be provided together',
+        path: ['minLat'],
+      })
+      return
+    }
+
+    if (
+      value.minLat !== undefined &&
+      value.maxLat !== undefined &&
+      value.minLat > value.maxLat
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'minLat must be less than or equal to maxLat',
+        path: ['minLat'],
+      })
+    }
+
+    if (
+      value.minLng !== undefined &&
+      value.maxLng !== undefined &&
+      value.minLng > value.maxLng
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'minLng must be less than or equal to maxLng',
+        path: ['minLng'],
+      })
+    }
+  })
 
 export type AssetType = z.infer<typeof assetTypeSchema>
 export type AssetStatus = z.infer<typeof assetStatusSchema>

@@ -13,6 +13,7 @@ assetRouter.get('/', async (request, response) => {
   if (!parsed.success) {
     response.status(400).json({
       error: 'Invalid query parameters',
+      message: parsed.error.issues[0]?.message,
       issues: parsed.error.flatten(),
     })
     return

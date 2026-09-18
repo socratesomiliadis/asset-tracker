@@ -48,6 +48,10 @@ function getConditions(params: AssetQueryParams) {
     params.inspected_to
       ? lte(assets.last_inspected_at, params.inspected_to)
       : undefined,
+    params.minLat !== undefined ? gte(assets.lat, params.minLat) : undefined,
+    params.maxLat !== undefined ? lte(assets.lat, params.maxLat) : undefined,
+    params.minLng !== undefined ? gte(assets.lng, params.minLng) : undefined,
+    params.maxLng !== undefined ? lte(assets.lng, params.maxLng) : undefined,
   ]
 }
 

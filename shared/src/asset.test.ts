@@ -61,4 +61,31 @@ describe('asset schemas', () => {
       offset: 50,
     })
   })
+
+  it('validates a complete bounding box', () => {
+    expect(
+      assetQueryParamsSchema.parse({
+        minLat: '40',
+        maxLat: '43',
+        minLng: '-75',
+        maxLng: '-70',
+      }),
+    ).toEqual({ minLat: 40, maxLat: 43, minLng: -75, maxLng: -70 })
+  })
+
+  it('rejects incomplete or reversed bounding boxes', () => {
+    const incomplete = assetQueryParamsSchema.safeParse({
+      minLat: '40',
+      maxLat: '43',
+    })
+    const reversed = assetQueryParamsSchema.safeParse({
+      minLat: '43',
+      maxLat: '40',
+      minLng: '-70',
+      maxLng: '-75',
+    })
+
+    expect(incomplete.success).toBe(false)
+    expect(reversed.success).toBe(false)
+  })
 })
