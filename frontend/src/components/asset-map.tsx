@@ -104,11 +104,21 @@ export function AssetMap({
         .addTo(map)
     })
 
-    map.fitBounds(bounds, {
-      padding: 64,
-      maxZoom: 13,
-      duration: 0,
-    })
+    const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
+
+    if (selectedAsset) {
+      map.easeTo({
+        center: [selectedAsset.lng, selectedAsset.lat],
+        zoom: 16,
+        duration: 500,
+      })
+    } else {
+      map.fitBounds(bounds, {
+        padding: 64,
+        maxZoom: 13,
+        duration: 500,
+      })
+    }
   }, [assets, onSelectAsset, selectedAssetId])
 
   return (
@@ -123,7 +133,6 @@ export function AssetMap({
           </span>
         ))}
       </div>
-
     </div>
   )
 }

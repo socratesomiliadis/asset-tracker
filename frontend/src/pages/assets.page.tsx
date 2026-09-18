@@ -1,4 +1,5 @@
 import type { AssetStatus, AssetType } from '@asset-tracker/shared'
+import type { CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { AssetDetails } from '@/components/asset-details'
@@ -66,7 +67,14 @@ export function AssetsPage() {
       </header>
 
       <main className="min-h-0 flex-1 p-4 lg:p-6">
-        <div className="grid h-full min-h-[42rem] gap-4 lg:grid-cols-[26rem_minmax(0,1fr)]">
+        <div
+          className="grid h-full min-h-[42rem] gap-4 lg:grid-cols-[26rem_minmax(0,1fr)] 2xl:grid-cols-[26rem_minmax(0,1fr)_var(--details-width)] 2xl:transition-[grid-template-columns] 2xl:duration-300 2xl:ease-out"
+          style={
+            {
+              '--details-width': selectedAsset ? '24rem' : '0rem',
+            } as CSSProperties
+          }
+        >
           <Card className="min-h-0 gap-0 py-0">
             <CardHeader className="gap-4 border-b py-4">
               <div className="flex items-center justify-between">
@@ -150,13 +158,13 @@ export function AssetsPage() {
               />
             </CardContent>
           </Card>
+
+          <AssetDetails
+            asset={selectedAsset}
+            onClose={() => setSelectedAssetId(undefined)}
+          />
         </div>
       </main>
-
-      <AssetDetails
-        asset={selectedAsset}
-        onClose={() => setSelectedAssetId(undefined)}
-      />
     </div>
   )
 }
