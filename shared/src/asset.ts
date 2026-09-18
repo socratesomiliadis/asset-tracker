@@ -4,6 +4,8 @@ export const assetTypeSchema = z.enum(['pipe', 'hydrant', 'sensor', 'valve'])
 
 export const assetStatusSchema = z.enum(['ok', 'warning', 'critical'])
 
+export const assetIdSchema = z.string().uuid()
+
 export const isoDateSchema = z.union([
   z.iso.date(),
   z.iso.datetime({ offset: true }),
@@ -11,7 +13,7 @@ export const isoDateSchema = z.union([
 
 export const assetSchema = z
   .object({
-    id: z.string().uuid(),
+    id: assetIdSchema,
     name: z.string(),
     type: assetTypeSchema,
     status: assetStatusSchema,

@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const serviceMock = vi.hoisted(() => ({
   findMany: vi.fn(),
+  findById: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
 }))
 
 vi.mock('./services/asset.service.js', () => ({
@@ -23,9 +27,28 @@ const asset = {
   notes: '',
 }
 
+const createInput = {
+  name: asset.name,
+  type: asset.type,
+  status: asset.status,
+  lat: asset.lat,
+  lng: asset.lng,
+  installed_at: asset.installed_at,
+  last_inspected_at: asset.last_inspected_at,
+  notes: asset.notes,
+}
+
 beforeEach(() => {
   serviceMock.findMany.mockReset()
+  serviceMock.findById.mockReset()
+  serviceMock.create.mockReset()
+  serviceMock.update.mockReset()
+  serviceMock.delete.mockReset()
   serviceMock.findMany.mockResolvedValue({ data: [asset], total: 150 })
+  serviceMock.findById.mockResolvedValue(asset)
+  serviceMock.create.mockResolvedValue(asset)
+  serviceMock.update.mockResolvedValue(asset)
+  serviceMock.delete.mockResolvedValue(true)
 })
 
 describe('GET /api/health', () => {
@@ -121,5 +144,105 @@ describe('GET /api/assets', () => {
     expect(response.body.error).toBe('Invalid query parameters')
     expect(response.body.message).toEqual(expect.any(String))
     expect(serviceMock.findMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('GET /api/assets/:id', () => {
+  it('returns an asset', async () => {
+    const response = await request(app).get(`/api/assets/${asset.id}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual(asset)
+    expect(serviceMock.findById).toHaveBeenCalledWith(asset.id)
+  })
+
+  it('returns 404 when the asset does not exist', async () => {
+    serviceMock.findById.mockResolvedValueOnce(null)
+
+    const response = await request(app).get(`/api/assets/${asset.id}`)
+
+    expect(response.status).toBe(404)
+    expect(response.body).toEqual({ error: 'Asset not found' })
+  })
+
+  it('rejects an invalid UUID', async () => {
+    const response = await request(app).get('/api/assets/not-a-uuid')
+
+    expect(response.status).toBe(400)
+    expect(serviceMock.findById).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/assets', () => {
+  it('creates an asset', async () => {
+    const response = await request(app).post('/api/assets').send(createInput)
+
+    expect(response.status).toBe(201)
+    expect(response.body).toEqual(asset)
+    expect(serviceMock.create).toHaveBeenCalledWith(createInput)
+  })
+
+  it('rejects an invalid asset', async () => {
+    const response = await request(app)
+      .post('/api/assets')
+      .send({ ...createInput, type: 'meter' })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('Invalid asset')
+    expect(serviceMock.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('PATCH /api/assets/:id', () => {
+  it('updates part of an asset', async () => {
+    serviceMock.update.mockResolvedValueOnce({ ...asset, status: 'critical' })
+
+    const response = await request(app)
+      .patch(`/api/assets/${asset.id}`)
+      .send({ status: 'critical' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.status).toBe('critical')
+    expect(serviceMock.update).toHaveBeenCalledWith(asset.id, {
+      status: 'critical',
+    })
+  })
+
+  it('rejects an empty update', async () => {
+    const response = await request(app).patch(`/api/assets/${asset.id}`).send({})
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('Invalid asset update')
+    expect(serviceMock.update).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the asset does not exist', async () => {
+    serviceMock.update.mockResolvedValueOnce(null)
+
+    const response = await request(app)
+      .patch(`/api/assets/${asset.id}`)
+      .send({ status: 'critical' })
+
+    expect(response.status).toBe(404)
+    expect(response.body).toEqual({ error: 'Asset not found' })
+  })
+})
+
+describe('DELETE /api/assets/:id', () => {
+  it('deletes an asset with no response body', async () => {
+    const response = await request(app).delete(`/api/assets/${asset.id}`)
+
+    expect(response.status).toBe(204)
+    expect(response.text).toBe('')
+    expect(serviceMock.delete).toHaveBeenCalledWith(asset.id)
+  })
+
+  it('returns 404 when the asset does not exist', async () => {
+    serviceMock.delete.mockResolvedValueOnce(false)
+
+    const response = await request(app).delete(`/api/assets/${asset.id}`)
+
+    expect(response.status).toBe(404)
+    expect(response.body).toEqual({ error: 'Asset not found' })
   })
 })

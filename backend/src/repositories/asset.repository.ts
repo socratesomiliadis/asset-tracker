@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type {
   Asset,
   AssetQueryParams,
@@ -95,7 +96,10 @@ export class AssetRepository {
   }
 
   async create(input: CreateAssetInput): Promise<Asset> {
-    const [row] = await db.insert(assets).values(input).returning()
+    const [row] = await db
+      .insert(assets)
+      .values({ ...input, id: randomUUID() })
+      .returning()
 
     if (!row) {
       throw new Error('Failed to create asset')
