@@ -1,7 +1,6 @@
 import type { Asset } from '@asset-tracker/shared'
 import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
 import { useEffect, useRef } from 'react'
-import { Badge } from '@/components/ui/badge'
 
 const markerColors = {
   ok: '#10b981',
@@ -23,7 +22,6 @@ export function AssetMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const markersRef = useRef<Marker[]>([])
-  const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -126,21 +124,6 @@ export function AssetMap({
         ))}
       </div>
 
-      {selectedAsset && (
-        <div className="absolute right-4 bottom-4 left-4 rounded-lg border bg-background/95 p-4 shadow-sm backdrop-blur sm:left-auto sm:w-80">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{selectedAsset.name}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {selectedAsset.lat.toFixed(4)}, {selectedAsset.lng.toFixed(4)}
-              </p>
-            </div>
-            <Badge variant="secondary" className="capitalize">
-              {selectedAsset.type}
-            </Badge>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

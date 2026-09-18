@@ -1,6 +1,7 @@
 import type { AssetStatus, AssetType } from '@asset-tracker/shared'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { AssetDetails } from '@/components/asset-details'
 import { AssetMap } from '@/components/asset-map'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
@@ -27,6 +28,7 @@ export function AssetsPage() {
   }
   const assetsQuery = useAssets(query)
   const assets = assetsQuery.data?.data ?? []
+  const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
   const selectAsset = useCallback((assetId: string) => setSelectedAssetId(assetId), [])
   const total = assetsQuery.data?.meta.total ?? 0
   const firstVisible = total === 0 ? 0 : offset + 1
@@ -150,6 +152,11 @@ export function AssetsPage() {
           </Card>
         </div>
       </main>
+
+      <AssetDetails
+        asset={selectedAsset}
+        onClose={() => setSelectedAssetId(undefined)}
+      />
     </div>
   )
 }
