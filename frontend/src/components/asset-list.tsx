@@ -1,6 +1,7 @@
 import type { Asset } from '@asset-tracker/shared'
 import { MapPin } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,6 +17,8 @@ type AssetListProps = {
   selectedId?: string
   isLoading: boolean
   isError: boolean
+  errorMessage?: string
+  onRetry: () => void
   onSelect: (asset: Asset) => void
 }
 
@@ -24,6 +27,8 @@ export function AssetList({
   selectedId,
   isLoading,
   isError,
+  errorMessage,
+  onRetry,
   onSelect,
 }: AssetListProps) {
   if (isLoading) {
@@ -41,8 +46,16 @@ export function AssetList({
 
   if (isError) {
     return (
-      <div className="flex h-full items-center justify-center p-8 text-center text-sm text-muted-foreground">
-        Assets could not be loaded. Check that the API is running.
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+        <div>
+          <p className="text-sm font-medium">Assets could not be loaded</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {errorMessage ?? 'Check that the API is running and try again.'}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
       </div>
     )
   }

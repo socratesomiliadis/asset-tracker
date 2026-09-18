@@ -1,8 +1,10 @@
 import type { Asset, AssetStatus, AssetType } from '@asset-tracker/shared'
 
-export type AssetFilters = {
+export type GetAssetsParams = {
   type?: AssetType
   status?: AssetStatus
+  limit: number
+  offset: number
 }
 
 export type AssetPage = {
@@ -14,16 +16,23 @@ export type AssetPage = {
   }
 }
 
-export async function getAssets(filters: AssetFilters): Promise<AssetPage> {
-  const query = new URLSearchParams({ limit: '50', offset: '0' })
+export async function getAssets(params: GetAssetsParams): Promise<AssetPage> {
+  const query = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+  })
 
-  if (filters.type) query.set('type', filters.type)
-  if (filters.status) query.set('status', filters.status)
+  if (params.type) query.set('type', params.type)
+  if (params.status) query.set('status', params.status)
 
   const response = await fetch(`/api/assets?${query}`)
 
   if (!response.ok) {
-    throw new Error('Failed to load assets')
+    const body = (await response.json().catch(() => null)) as {
+      error?: { message?: string }
+    } | null
+
+    throw new Error(body?.error?.message ?? 'Failed to load assets')
   }
 
   return response.json() as Promise<AssetPage>

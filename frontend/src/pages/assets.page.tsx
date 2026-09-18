@@ -1,35 +1,51 @@
 import type { Asset, AssetStatus, AssetType } from '@asset-tracker/shared'
-import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
 import { MapPlaceholder } from '@/components/map-placeholder'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { getAssets } from '@/lib/assets-api'
+import { useAssets } from '@/hooks/use-assets'
 
 type TypeFilter = AssetType | 'all'
 type StatusFilter = AssetStatus | 'all'
+
+const PAGE_SIZE = 25
 
 export function AssetsPage() {
   const [type, setType] = useState<TypeFilter>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [selectedId, setSelectedId] = useState<string>()
-  const filters = {
+  const [offset, setOffset] = useState(0)
+  const query = {
     type: type === 'all' ? undefined : type,
     status: status === 'all' ? undefined : status,
+    limit: PAGE_SIZE,
+    offset,
   }
-  const assetsQuery = useQuery({
-    queryKey: ['assets', filters],
-    queryFn: () => getAssets(filters),
-  })
+  const assetsQuery = useAssets(query)
   const assets = assetsQuery.data?.data ?? []
   const selectedAsset =
     assets.find((asset) => asset.id === selectedId) ?? assets[0]
 
   const selectAsset = (asset: Asset) => setSelectedId(asset.id)
+  const total = assetsQuery.data?.meta.total ?? 0
+  const firstVisible = total === 0 ? 0 : offset + 1
+  const lastVisible = Math.min(offset + assets.length, total)
+  const hasPreviousPage = offset > 0
+  const hasNextPage = offset + assets.length < total
+
+  const changeType = (value: TypeFilter) => {
+    setType(value)
+    setOffset(0)
+  }
+
+  const changeStatus = (value: StatusFilter) => {
+    setStatus(value)
+    setOffset(0)
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30 lg:h-screen lg:overflow-hidden">
@@ -57,7 +73,7 @@ export function AssetsPage() {
                   <p className="font-medium">Asset list</p>
                   <p className="text-xs text-muted-foreground">
                     {assetsQuery.data
-                      ? `${assets.length} of ${assetsQuery.data.meta.total} assets`
+                      ? `${assetsQuery.data.meta.total} matching assets`
                       : 'Loading assets'}
                   </p>
                 </div>
@@ -65,8 +81,8 @@ export function AssetsPage() {
               <AssetFilters
                 type={type}
                 status={status}
-                onTypeChange={setType}
-                onStatusChange={setStatus}
+                onTypeChange={changeType}
+                onStatusChange={changeStatus}
               />
             </CardHeader>
             <CardContent className="min-h-0 flex-1 px-0">
@@ -75,9 +91,36 @@ export function AssetsPage() {
                 selectedId={selectedAsset?.id}
                 isLoading={assetsQuery.isPending}
                 isError={assetsQuery.isError}
+                errorMessage={assetsQuery.error?.message}
+                onRetry={() => void assetsQuery.refetch()}
                 onSelect={selectAsset}
               />
             </CardContent>
+            <CardFooter className="justify-between bg-background py-3">
+              <span className="text-xs text-muted-foreground">
+                {firstVisible}–{lastVisible} of {total}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Previous page"
+                  disabled={!hasPreviousPage || assetsQuery.isFetching}
+                  onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+                >
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Next page"
+                  disabled={!hasNextPage || assetsQuery.isFetching}
+                  onClick={() => setOffset((current) => current + PAGE_SIZE)}
+                >
+                  <ChevronRight />
+                </Button>
+              </div>
+            </CardFooter>
           </Card>
 
           <Card className="min-h-0 gap-0 py-0">
