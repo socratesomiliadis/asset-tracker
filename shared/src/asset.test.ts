@@ -44,6 +44,7 @@ describe('asset schemas', () => {
       status: 'warning',
     })
     expect(updateAssetInputSchema.safeParse({}).success).toBe(false)
+    expect(createAssetInputSchema.safeParse({ ...createInput, name: ' ' }).success).toBe(false)
   })
 
   it('coerces numeric query parameters', () => {

@@ -6,6 +6,7 @@ import { AssetDetails } from '@/components/asset-details'
 import { AssetMap, type AssetMapBounds } from '@/components/asset-map'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
+import { CreateAssetDrawer } from '@/components/create-asset-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -20,6 +21,7 @@ export function AssetsPage() {
   const [type, setType] = useState<TypeFilter>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [selectedAssetId, setSelectedAssetId] = useState<string>()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [mapBounds, setMapBounds] = useState<AssetMapBounds>()
   const [offset, setOffset] = useState(0)
   const query = {
@@ -66,7 +68,7 @@ export function AssetsPage() {
               Monitor and manage infrastructure across your network.
             </p>
           </div>
-          <Button size="lg">
+          <Button size="lg" onClick={() => setIsCreateOpen(true)}>
             <Plus data-icon="inline-start" />
             Add Asset
           </Button>
@@ -174,6 +176,15 @@ export function AssetsPage() {
           />
         </div>
       </main>
+
+      <CreateAssetDrawer
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onCreated={() => {
+          setOffset(0)
+          setIsCreateOpen(false)
+        }}
+      />
     </div>
   )
 }

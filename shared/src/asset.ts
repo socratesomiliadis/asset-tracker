@@ -14,7 +14,7 @@ export const isoDateSchema = z.union([
 export const assetSchema = z
   .object({
     id: assetIdSchema,
-    name: z.string(),
+    name: z.string().trim().min(1, 'Name is required'),
     type: assetTypeSchema,
     status: assetStatusSchema,
     lat: z.number().min(-90).max(90),

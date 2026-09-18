@@ -1,4 +1,47 @@
-import type { Asset, AssetStatus, AssetType } from '@asset-tracker/shared'
+import type {
+  Asset,
+  AssetStatus,
+  AssetType,
+  CreateAssetInput,
+} from '@asset-tracker/shared'
+
+type ApiErrorBody = {
+  error?: {
+    code?: string
+    message?: string
+    details?: unknown
+  }
+}
+
+export class AssetsApiError extends Error {
+  readonly status: number
+  readonly code: string
+  readonly details?: unknown
+
+  constructor(
+    message: string,
+    status: number,
+    code = 'UNKNOWN_ERROR',
+    details?: unknown,
+  ) {
+    super(message)
+    this.name = 'AssetsApiError'
+    this.status = status
+    this.code = code
+    this.details = details
+  }
+}
+
+async function getApiError(response: Response, fallbackMessage: string) {
+  const body = (await response.json().catch(() => null)) as ApiErrorBody | null
+
+  return new AssetsApiError(
+    body?.error?.message ?? fallbackMessage,
+    response.status,
+    body?.error?.code,
+    body?.error?.details,
+  )
+}
 
 export type GetAssetsParams = {
   type?: AssetType
@@ -36,12 +79,24 @@ export async function getAssets(params: GetAssetsParams): Promise<AssetPage> {
   const response = await fetch(`/api/assets?${query}`)
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      error?: { message?: string }
-    } | null
-
-    throw new Error(body?.error?.message ?? 'Failed to load assets')
+    throw await getApiError(response, 'Failed to load assets')
   }
 
   return response.json() as Promise<AssetPage>
+}
+
+export async function createAsset(input: CreateAssetInput): Promise<Asset> {
+  const response = await fetch('/api/assets', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw await getApiError(response, 'Failed to create asset')
+  }
+
+  return response.json() as Promise<Asset>
 }
