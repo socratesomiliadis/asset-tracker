@@ -3,6 +3,10 @@ import type { Asset, AssetStatus, AssetType } from '@asset-tracker/shared'
 export type GetAssetsParams = {
   type?: AssetType
   status?: AssetStatus
+  minLat?: number
+  maxLat?: number
+  minLng?: number
+  maxLng?: number
   limit: number
   offset: number
 }
@@ -24,6 +28,10 @@ export async function getAssets(params: GetAssetsParams): Promise<AssetPage> {
 
   if (params.type) query.set('type', params.type)
   if (params.status) query.set('status', params.status)
+  if (params.minLat !== undefined) query.set('minLat', String(params.minLat))
+  if (params.maxLat !== undefined) query.set('maxLat', String(params.maxLat))
+  if (params.minLng !== undefined) query.set('minLng', String(params.minLng))
+  if (params.maxLng !== undefined) query.set('maxLng', String(params.maxLng))
 
   const response = await fetch(`/api/assets?${query}`)
 

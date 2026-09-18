@@ -1,6 +1,8 @@
 import type { Asset } from '@asset-tracker/shared'
 import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const markerColors = {
   ok: '#10b981',
@@ -8,26 +10,55 @@ const markerColors = {
   critical: '#ef4444',
 } satisfies Record<Asset['status'], string>
 
+const programmaticMoveEvent = { isProgrammaticMove: true } as const
+
 type AssetMapProps = {
   assets: Asset[]
   selectedAssetId?: string
+  hasActiveAreaSearch: boolean
   onSelectAsset: (assetId: string) => void
+  onSearchArea: (bounds: AssetMapBounds) => void
+}
+
+export type AssetMapBounds = {
+  minLat: number
+  maxLat: number
+  minLng: number
+  maxLng: number
+}
+
+function getSearchBounds(map: Map): AssetMapBounds {
+  const bounds = map.getBounds()
+  const west = bounds.getWest()
+  const east = bounds.getEast()
+  const spansDateLine = west < -180 || east > 180
+
+  return {
+    minLat: Math.max(-90, bounds.getSouth()),
+    maxLat: Math.min(90, bounds.getNorth()),
+    minLng: spansDateLine ? -180 : west,
+    maxLng: spansDateLine ? 180 : east,
+  }
 }
 
 export function AssetMap({
   assets,
   selectedAssetId,
+  hasActiveAreaSearch,
   onSelectAsset,
+  onSearchArea,
 }: AssetMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const markersRef = useRef<Marker[]>([])
+  const [showSearchArea, setShowSearchArea] = useState(false)
 
   useEffect(() => {
-    if (!containerRef.current) return
+    const container = containerRef.current
+    if (!container) return
 
     const map = new Map({
-      container: containerRef.current,
+      container,
       center: [-98.5, 39.5],
       zoom: 3,
       style: {
@@ -53,8 +84,15 @@ export function AssetMap({
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
     mapRef.current = map
 
-    const resizeObserver = new ResizeObserver(() => map.resize())
-    resizeObserver.observe(containerRef.current)
+    map.on('moveend', (event) => {
+      if ('isProgrammaticMove' in event) return
+      setShowSearchArea(true)
+    })
+
+    const resizeObserver = new ResizeObserver(() =>
+      map.resize(programmaticMoveEvent),
+    )
+    resizeObserver.observe(container)
 
     return () => {
       resizeObserver.disconnect()
@@ -107,19 +145,34 @@ export function AssetMap({
     const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
 
     if (selectedAsset) {
-      map.easeTo({
-        center: [selectedAsset.lng, selectedAsset.lat],
-        zoom: 16,
-        duration: 500,
-      })
-    } else {
-      map.fitBounds(bounds, {
-        padding: 64,
-        maxZoom: 13,
-        duration: 500,
-      })
+      map.easeTo(
+        {
+          center: [selectedAsset.lng, selectedAsset.lat],
+          zoom: 16,
+          duration: 500,
+        },
+        programmaticMoveEvent,
+      )
+    } else if (!hasActiveAreaSearch) {
+      map.fitBounds(
+        bounds,
+        {
+          padding: 64,
+          maxZoom: 13,
+          duration: 500,
+        },
+        programmaticMoveEvent,
+      )
     }
-  }, [assets, onSelectAsset, selectedAssetId])
+  }, [assets, hasActiveAreaSearch, onSelectAsset, selectedAssetId])
+
+  const searchCurrentArea = () => {
+    const map = mapRef.current
+    if (!map) return
+
+    onSearchArea(getSearchBounds(map))
+    setShowSearchArea(false)
+  }
 
   return (
     <div className="relative h-full min-h-[32rem] overflow-hidden rounded-lg">
@@ -133,6 +186,18 @@ export function AssetMap({
           </span>
         ))}
       </div>
+
+      {showSearchArea && (
+        <Button
+          type="button"
+          size="sm"
+          className="absolute top-3 left-1/2 -translate-x-1/2 shadow-md"
+          onClick={searchCurrentArea}
+        >
+          <Search data-icon="inline-start" />
+          Search this area
+        </Button>
+      )}
     </div>
   )
 }

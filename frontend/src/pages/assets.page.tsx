@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { AssetDetails } from '@/components/asset-details'
-import { AssetMap } from '@/components/asset-map'
+import { AssetMap, type AssetMapBounds } from '@/components/asset-map'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
 import { Button } from '@/components/ui/button'
@@ -20,10 +20,12 @@ export function AssetsPage() {
   const [type, setType] = useState<TypeFilter>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [selectedAssetId, setSelectedAssetId] = useState<string>()
+  const [mapBounds, setMapBounds] = useState<AssetMapBounds>()
   const [offset, setOffset] = useState(0)
   const query = {
     type: type === 'all' ? undefined : type,
     status: status === 'all' ? undefined : status,
+    ...mapBounds,
     limit: PAGE_SIZE,
     offset,
   }
@@ -31,6 +33,11 @@ export function AssetsPage() {
   const assets = assetsQuery.data?.data ?? []
   const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
   const selectAsset = useCallback((assetId: string) => setSelectedAssetId(assetId), [])
+  const searchMapArea = useCallback((bounds: AssetMapBounds) => {
+    setMapBounds(bounds)
+    setOffset(0)
+    setSelectedAssetId(undefined)
+  }, [])
   const total = assetsQuery.data?.meta.total ?? 0
   const firstVisible = total === 0 ? 0 : offset + 1
   const lastVisible = Math.min(offset + assets.length, total)
@@ -154,7 +161,9 @@ export function AssetsPage() {
               <AssetMap
                 assets={assets}
                 selectedAssetId={selectedAssetId}
+                hasActiveAreaSearch={Boolean(mapBounds)}
                 onSelectAsset={selectAsset}
+                onSearchArea={searchMapArea}
               />
             </CardContent>
           </Card>
