@@ -7,6 +7,7 @@ import {
   assetStatusSchema,
   createAssetInputSchema,
   updateAssetInputSchema,
+  INSPECTION_DATE_ERROR,
 } from '@asset-tracker/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -15,7 +16,9 @@ import {
   useForm,
   useWatch,
 } from 'react-hook-form'
-import { useCallback, useId } from 'react'
+import { useCallback, useEffect, useId } from 'react'
+import { z } from 'zod'
+import { AssetsApiError } from '@/lib/assets-api'
 import { AssetLocationPicker } from '@/components/asset-location-picker'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,6 +37,7 @@ type SharedAssetFormProps = {
   className?: string
   isSubmitting?: boolean
   submitLabel?: string
+  serverError?: Error | null
 }
 
 type AssetFormProps = SharedAssetFormProps &
@@ -75,11 +79,33 @@ export function AssetForm(props: AssetFormProps) {
     handleSubmit,
     register,
     setValue,
+    setError,
   } = useForm<CreateAssetInput>({
     defaultValues,
     mode: 'onBlur',
-    resolver: zodResolver(validationSchema) as Resolver<CreateAssetInput>,
+    resolver: (values, context, options) => {
+      const effectiveValues = { ...values }
+      if (props.mode === 'edit') {
+        if (values.installed_at === defaultValues.installed_at && props.initialValues.installed_at !== undefined) {
+          effectiveValues.installed_at = props.initialValues.installed_at
+        }
+        if (values.last_inspected_at === defaultValues.last_inspected_at && props.initialValues.last_inspected_at !== undefined) {
+          effectiveValues.last_inspected_at = props.initialValues.last_inspected_at
+        }
+      }
+      return (zodResolver(validationSchema) as Resolver<CreateAssetInput>)(effectiveValues, context, options)
+    },
   })
+  useEffect(() => {
+    if (!(props.serverError instanceof AssetsApiError)) return
+    const details = z.object({ fieldErrors: z.record(z.string(), z.array(z.string())) })
+      .safeParse(props.serverError.details)
+    if (!details.success) return
+    for (const field of Object.keys(createAssetInputSchema.shape) as (keyof CreateAssetInput)[]) {
+      const message = details.data.fieldErrors[field]?.[0]
+      if (message) setError(field, { type: 'server', message })
+    }
+  }, [props.serverError, setError])
   const [latitude, longitude] = useWatch({
     control,
     name: ['lat', 'lng'],
@@ -181,7 +207,9 @@ export function AssetForm(props: AssetFormProps) {
             />
             <FieldError>
               {errors.last_inspected_at
-                ? 'Enter a valid inspection date or leave it blank.'
+                ? errors.last_inspected_at.message === INSPECTION_DATE_ERROR
+                  ? INSPECTION_DATE_ERROR
+                  : 'Enter a valid inspection date or leave it blank.'
                 : null}
             </FieldError>
           </Field>

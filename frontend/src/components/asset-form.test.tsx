@@ -1,9 +1,48 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { AssetForm } from './asset-form'
+import { INSPECTION_DATE_ERROR } from '@asset-tracker/shared'
+import { AssetsApiError } from '@/lib/assets-api'
 
 vi.mock('@/components/asset-location-picker', () => ({ AssetLocationPicker: () => null }))
 afterEach(cleanup)
+
+it.each(['create', 'edit'] as const)('shows an actionable inspection error in %s mode and allows correction', async (mode) => {
+  const onSubmit = vi.fn()
+  render(<AssetForm mode={mode} initialValues={{
+    name: 'Test', type: 'pipe', status: 'ok', lat: 40, lng: -70,
+    installed_at: '2026-01-10T12:00:00.000Z', last_inspected_at: null, notes: '',
+  }} onSubmit={onSubmit} />)
+  fireEvent.change(screen.getByLabelText('Last inspected date'), { target: { value: '2026-01-09' } })
+  fireEvent.click(screen.getByRole('button', { name: mode === 'create' ? 'Create asset' : 'Save changes' }))
+  await screen.findByText(INSPECTION_DATE_ERROR)
+  expect(screen.getByLabelText('Last inspected date').getAttribute('aria-invalid')).toBe('true')
+  expect(onSubmit).not.toHaveBeenCalled()
+  fireEvent.change(screen.getByLabelText('Last inspected date'), { target: { value: '2026-01-11' } })
+  fireEvent.click(screen.getByRole('button', { name: mode === 'create' ? 'Create asset' : 'Save changes' }))
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+})
+
+it('validates a changed inspection date against the full unchanged installation timestamp', async () => {
+  const onSubmit = vi.fn()
+  render(<AssetForm mode="edit" initialValues={{
+    name: 'Test', type: 'pipe', status: 'ok', lat: 40, lng: -70,
+    installed_at: '2026-01-10T12:00:00.000Z', last_inspected_at: null, notes: '',
+  }} onSubmit={onSubmit} />)
+  fireEvent.change(screen.getByLabelText('Last inspected date'), { target: { value: '2026-01-10' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  await screen.findByText(INSPECTION_DATE_ERROR)
+  expect(onSubmit).not.toHaveBeenCalled()
+})
+
+it('displays server inspection validation errors at the field', async () => {
+  render(<AssetForm mode="create" serverError={new AssetsApiError(
+    'Invalid request body', 400, 'INVALID_REQUEST_BODY',
+    { fieldErrors: { last_inspected_at: [INSPECTION_DATE_ERROR] } },
+  )} />)
+  await screen.findByText(INSPECTION_DATE_ERROR)
+  expect(screen.getByLabelText('Last inspected date').getAttribute('aria-invalid')).toBe('true')
+})
 
 it('blocks missing required fields, then submits after they are corrected', async () => {
   const onSubmit = vi.fn()

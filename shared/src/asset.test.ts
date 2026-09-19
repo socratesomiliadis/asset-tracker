@@ -4,6 +4,7 @@ import {
   assetSchema,
   createAssetInputSchema,
   updateAssetInputSchema,
+  INSPECTION_DATE_ERROR,
 } from './asset.js'
 
 const asset = {
@@ -19,6 +20,22 @@ const asset = {
 } as const
 
 describe('asset schemas', () => {
+  it('rejects inspection before installation with a field error', () => {
+    const { id: _id, ...input } = asset
+    const result = createAssetInputSchema.safeParse({ ...input, last_inspected_at: '2025-01-09' })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.flatten().fieldErrors).toEqual({
+      last_inspected_at: [INSPECTION_DATE_ERROR],
+    })
+    expect(updateAssetInputSchema.safeParse({ installed_at: '2025-02-01', last_inspected_at: '2025-01-01' }).success).toBe(false)
+  })
+
+  it('compares instants across offsets and accepts equality, null, and partial dates', () => {
+    expect(updateAssetInputSchema.safeParse({ installed_at: '2025-01-01T10:00:00+02:00', last_inspected_at: '2025-01-01T08:00:00Z' }).success).toBe(true)
+    expect(updateAssetInputSchema.safeParse({ installed_at: '2025-01-01T10:00:00+02:00', last_inspected_at: '2025-01-01T09:00:00+03:00' }).success).toBe(false)
+    expect(updateAssetInputSchema.safeParse({ last_inspected_at: null }).success).toBe(true)
+    expect(updateAssetInputSchema.safeParse({ last_inspected_at: '2025-01-01' }).success).toBe(true)
+  })
   it('validates an Asset', () => {
     expect(assetSchema.parse(asset)).toEqual(asset)
   })

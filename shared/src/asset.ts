@@ -28,10 +28,27 @@ export const assetSchema = z
   })
   .strict()
 
-export const createAssetInputSchema = assetSchema.omit({ id: true }).strict()
+export const INSPECTION_DATE_ERROR = 'Inspection date must be on or after the installation date.'
 
-export const updateAssetInputSchema = createAssetInputSchema
+function inspectionDatesInOrder(value: {
+  installed_at?: string
+  last_inspected_at?: string | null
+}) {
+  if (!value.installed_at || !value.last_inspected_at) return true
+  const installed = Date.parse(value.installed_at)
+  const inspected = Date.parse(value.last_inspected_at)
+  // Invalid formats are reported by the individual date fields.
+  return !Number.isFinite(installed) || !Number.isFinite(inspected) || inspected >= installed
+}
+
+const assetInputSchema = assetSchema.omit({ id: true }).strict()
+const inspectionDateIssue = { message: INSPECTION_DATE_ERROR, path: ['last_inspected_at'] }
+
+export const createAssetInputSchema = assetInputSchema.refine(inspectionDatesInOrder, inspectionDateIssue)
+
+export const updateAssetInputSchema = assetInputSchema
   .partial()
+  .refine(inspectionDatesInOrder, inspectionDateIssue)
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field must be provided',
   })

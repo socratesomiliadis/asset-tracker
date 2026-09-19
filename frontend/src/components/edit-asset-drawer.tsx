@@ -57,6 +57,7 @@ export function EditAssetDrawer({
       {asset && (
         <AssetForm
           mode="edit"
+          serverError={updateAsset.error}
           initialValues={asset}
           isSubmitting={updateAsset.isPending}
           submitLabel={updateAsset.isPending ? 'Saving…' : 'Save changes'}
