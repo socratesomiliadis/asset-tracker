@@ -121,6 +121,8 @@ export function AssetsPage() {
                 </div>
               </div>
               <AssetFilters
+                hasActiveAreaSearch={Boolean(mapBounds)}
+                onClearArea={clearMapArea}
                 type={type}
                 status={status}
                 onTypeChange={changeType}

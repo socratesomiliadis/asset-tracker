@@ -1,5 +1,7 @@
 import type { AssetStatus, AssetType } from '@asset-tracker/shared'
 import { useId } from 'react'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
 import {
   Select,
@@ -17,6 +19,8 @@ const statusLabels = { all: 'All statuses', ok: 'OK', warning: 'Warning', critic
 type AssetFiltersProps = {
   type: FilterValue<AssetType>
   status: FilterValue<AssetStatus>
+  hasActiveAreaSearch: boolean
+  onClearArea: () => void
   onTypeChange: (value: FilterValue<AssetType>) => void
   onStatusChange: (value: FilterValue<AssetStatus>) => void
 }
@@ -24,6 +28,8 @@ type AssetFiltersProps = {
 export function AssetFilters({
   type,
   status,
+  hasActiveAreaSearch,
+  onClearArea,
   onTypeChange,
   onStatusChange,
 }: AssetFiltersProps) {
@@ -64,6 +70,19 @@ export function AssetFilters({
           </SelectContent>
         </Select>
       </Field>
+      {hasActiveAreaSearch && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="col-span-2 h-7 w-fit rounded-full text-xs"
+          aria-label="Remove area filter"
+          onClick={onClearArea}
+        >
+          Area filter active
+          <X className="size-3" aria-hidden="true" />
+        </Button>
+      )}
     </div>
   )
 }
