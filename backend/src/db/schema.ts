@@ -15,6 +15,11 @@ export const assetTypeEnum = pgEnum('asset_type', ASSET_TYPES)
 
 export const assetStatusEnum = pgEnum('asset_status', ASSET_STATUSES)
 
+export const initializations = pgTable('initializations', {
+  key: text('key').primaryKey(),
+  completed_at: timestamp('completed_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
 export const assets = pgTable(
   'assets',
   {
