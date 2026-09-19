@@ -71,7 +71,7 @@ export function AssetForm(props: AssetFormProps) {
   }
   const {
     control,
-    formState: { errors },
+    formState: { errors, dirtyFields, isDirty },
     handleSubmit,
     register,
     setValue,
@@ -103,6 +103,18 @@ export function AssetForm(props: AssetFormProps) {
 
   const submitForm = handleSubmit((values) => {
     if (props.isSubmitting) return
+    if (props.mode === 'edit') {
+      // Compare against the date inputs' defaults, not the original timestamps.
+      // Untouched dates must retain their full precision on the server.
+      const changes: UpdateAssetInput = Object.fromEntries(
+        Object.entries(values).filter(
+          ([key]) => dirtyFields[key as keyof CreateAssetInput],
+        ),
+      )
+      if (Object.keys(changes).length === 0) return
+      props.onSubmit?.(changes)
+      return
+    }
     props.onSubmit?.(values)
   })
 
@@ -238,7 +250,10 @@ export function AssetForm(props: AssetFormProps) {
       </FieldGroup>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={props.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={props.isSubmitting || (props.mode === 'edit' && !isDirty)}
+        >
           {props.submitLabel ??
             (props.mode === 'create' ? 'Create asset' : 'Save changes')}
         </Button>

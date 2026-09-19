@@ -98,3 +98,40 @@ it('opens the selected asset details and lets the user close them', async () => 
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   expect(screen.getByRole('button', { name: /North sensor/ }).getAttribute('aria-pressed')).toBe('false')
 })
+
+it('PATCHes only notes and preserves the original installation and inspection timestamps', async () => {
+  const original = {
+    ...asset,
+    installed_at: '2026-01-01T12:34:56.789Z',
+    last_inspected_at: '2026-02-03T09:10:11.123Z',
+  }
+  let saved = { ...original }
+  fetchMock.mockImplementation(async (_url, options) => {
+    if (options?.method === 'PATCH') {
+      saved = { ...saved, ...JSON.parse(String(options.body)) }
+      return new Response(JSON.stringify(saved))
+    }
+    return new Response(JSON.stringify({
+      data: [saved], meta: { total: 1, limit: 25, offset: 0 },
+    }))
+  })
+
+  mount()
+  await user.click(await screen.findByRole('button', { name: /North sensor/ }))
+  await user.click(screen.getByRole('button', { name: 'Edit' }))
+  const form = within(await screen.findByRole('dialog', { name: 'Edit asset' }))
+  await user.clear(form.getByLabelText('Notes'))
+  await user.type(form.getByLabelText('Notes'), 'Pressure reading checked.')
+  await user.click(form.getByRole('button', { name: 'Save changes' }))
+
+  await waitFor(() => {
+    const patches = fetchMock.mock.calls.filter(([, options]) => options?.method === 'PATCH')
+    expect(patches).toHaveLength(1)
+    expect(patches[0]?.[0]).toBe(`/api/assets/${asset.id}`)
+    expect(JSON.parse(String(patches[0]?.[1]?.body))).toEqual({ notes: 'Pressure reading checked.' })
+    expect(saved).toEqual({ ...original, notes: 'Pressure reading checked.' })
+  })
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit asset' })).toBeNull())
+  const details = within(await screen.findByRole('dialog', { name: 'North sensor' }))
+  expect(details.getByText('Pressure reading checked.')).toBeTruthy()
+})
