@@ -14,8 +14,10 @@ import { AssetsPage } from './assets.page'
 
 vi.mock('@/lib/assets-api', () => ({ getAssets: vi.fn() }))
 vi.mock('@/components/asset-map', () => ({
-  AssetMap: ({ assets, onSearchArea, onClearArea, hasActiveAreaSearch, isError }: ComponentProps<typeof AssetMap>) => <div>
+  AssetMap: ({ assets, onSelectAsset, onSearchArea, onClearArea, hasActiveAreaSearch, isError, onRetry }: ComponentProps<typeof AssetMap>) => <div>
     <span>{isError ? 'Map unavailable' : `Map assets: ${assets.length}`}</span>
+    {assets.map((asset) => <button key={asset.id} onClick={() => onSelectAsset(asset.id)}>Marker {asset.name}</button>)}
+    {isError && <button onClick={onRetry}>Retry map</button>}
     <button onClick={() => onSearchArea({ minLat: 0, maxLat: 1, minLng: 0, maxLng: 1 })}>Search area</button>
     {hasActiveAreaSearch && <button onClick={onClearArea}>Clear area</button>}
   </div>,
@@ -37,7 +39,10 @@ vi.mock('@/components/create-asset-drawer', () => ({
   CreateAssetDrawer: ({ open, onCreated }: ComponentProps<typeof CreateAssetDrawer>) => open && <button onClick={() => onCreated(asset)}>Finish creation</button>,
 }))
 vi.mock('@/components/asset-filters', () => ({
-  AssetFilters: ({ onTypeChange }: ComponentProps<typeof AssetFilters>) => <button onClick={() => onTypeChange('sensor')}>Filter sensors</button>,
+  AssetFilters: ({ onTypeChange, onStatusChange }: ComponentProps<typeof AssetFilters>) => <>
+    <button onClick={() => onTypeChange('sensor')}>Filter sensors</button>
+    <button onClick={() => onStatusChange('warning')}>Filter warning</button>
+  </>,
 }))
 
 const asset: Asset = { id: 'a', name: 'Test asset', type: 'pipe', status: 'ok', lat: 40, lng: -70, installed_at: '2026-01-01', last_inspected_at: null, notes: '' }
@@ -47,12 +52,86 @@ beforeEach(() => {
   rows = Array.from({ length: 26 }, (_, i) => ({ ...asset, id: String(i), name: `Asset ${i}` }))
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   vi.mocked(getAssets).mockImplementation(async (params) => {
-    const filtered = rows.filter((item) => (!params.type || item.type === params.type) && (params.minLat === undefined || item.lat <= params.maxLat!))
+    const filtered = rows.filter((item) =>
+      (!params.type || item.type === params.type) &&
+      (!params.status || item.status === params.status) &&
+      (params.minLat === undefined || (
+        item.lat >= params.minLat && item.lat <= params.maxLat! &&
+        item.lng >= params.minLng! && item.lng <= params.maxLng!
+      )))
     return { data: filtered.slice(params.offset, params.offset + params.limit), meta: { total: filtered.length, offset: params.offset, limit: params.limit } }
   })
 })
 afterEach(() => { cleanup(); client.clear(); vi.clearAllMocks() })
 function mount() { render(<QueryClientProvider client={client}><AssetsPage /></QueryClientProvider>) }
+
+it('loads all map pages with bounded requests and selects assets outside the list page', async () => {
+  rows = Array.from({ length: 205 }, (_, i) => ({ ...asset, id: String(i), name: `Asset ${i}` }))
+  mount()
+  await screen.findByText('Map assets: 205')
+  expect(screen.getByText('1–25 of 205')).toBeTruthy()
+  expect(screen.queryByText('Asset 204')).toBeNull()
+  expect(vi.mocked(getAssets).mock.calls.map(([params]) => [params.limit, params.offset]))
+    .toEqual([[25, 0], [100, 0], [100, 100], [100, 200]])
+
+  fireEvent.click(screen.getByText('Marker Asset 204'))
+  expect(screen.getByText('Details: Asset 204')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+  await screen.findByText('26–50 of 205')
+  expect(screen.getByText('Map assets: 205')).toBeTruthy()
+  expect(screen.getByText('Details: Asset 204')).toBeTruthy()
+  expect(vi.mocked(getAssets).mock.calls.filter(([params]) => params.limit === 100)).toHaveLength(3)
+  fireEvent.click(screen.getByText('Edit selected'))
+  fireEvent.click(screen.getByText('Finish edit'))
+  expect(screen.getByText('Details: Asset 204')).toBeTruthy()
+})
+
+it('applies type, status, and area filters to every map page and resets selection', async () => {
+  rows = Array.from({ length: 102 }, (_, i) => ({
+    ...asset, id: String(i), name: `Match ${i}`, type: 'sensor', status: 'warning', lat: 0.5, lng: 0.5,
+  }))
+  rows.push(
+    { ...asset, id: 'wrong-type', lat: 0.5, lng: 0.5, status: 'warning' },
+    { ...asset, id: 'wrong-status', type: 'sensor', lat: 0.5, lng: 0.5 },
+    { ...asset, id: 'outside', type: 'sensor', status: 'warning' },
+  )
+  mount()
+  await screen.findByText('Map assets: 105')
+  fireEvent.click(screen.getByText('Filter sensors'))
+  await screen.findByText('Map assets: 104')
+  fireEvent.click(screen.getByText('Filter warning'))
+  await screen.findByText('Map assets: 103')
+  fireEvent.click(screen.getByText('Marker Match 101'))
+  expect(screen.getByText('Details: Match 101')).toBeTruthy()
+  fireEvent.click(screen.getByText('Search area'))
+  await screen.findByText('Map assets: 102')
+  expect(screen.queryByText('Details: Match 101')).toBeNull()
+  const areaRequests = vi.mocked(getAssets).mock.calls
+    .map(([params]) => params).filter((params) => params.limit === 100 && params.minLat !== undefined)
+  expect(areaRequests).toEqual([0, 100].map((offset) => ({
+    type: 'sensor', status: 'warning', minLat: 0, maxLat: 1, minLng: 0, maxLng: 1, limit: 100, offset,
+  })))
+  fireEvent.click(screen.getByText('Clear area'))
+  await screen.findByText('Map assets: 103')
+})
+
+it('reports a failed later map page without presenting partial results and retries independently', async () => {
+  rows = Array.from({ length: 101 }, (_, i) => ({ ...asset, id: String(i), name: `Asset ${i}` }))
+  const getPage = vi.mocked(getAssets).getMockImplementation()!
+  let failMap = true
+  vi.mocked(getAssets).mockImplementation(async (params, signal) => {
+    if (failMap && params.offset === 100) throw new Error('Map page unavailable')
+    return getPage(params, signal)
+  })
+  mount()
+  await screen.findByText('Map unavailable')
+  expect(screen.getByText('1–25 of 101')).toBeTruthy()
+  expect(screen.queryByText('Marker Asset 0')).toBeNull()
+  failMap = false
+  fireEvent.click(screen.getByText('Retry map'))
+  await screen.findByText('Map assets: 101')
+  expect(vi.mocked(getAssets).mock.calls.filter(([params]) => params.limit === 25)).toHaveLength(1)
+})
 
 it('resets pagination and clears selection when a filter returns no matches', async () => {
   mount()
@@ -93,11 +172,11 @@ it('clears map bounds and filters after creating an asset outside the area', asy
   await waitFor(() => expect(vi.mocked(getAssets).mock.lastCall?.[0]).toMatchObject({ offset: 0, type: undefined }))
 })
 
-it('shows API failure in both views and recovers on retry', async () => {
+it('keeps the map available when the list fails and recovers on retry', async () => {
   vi.mocked(getAssets).mockRejectedValueOnce(new Error('API unavailable'))
   mount()
   await screen.findByText('Assets could not be loaded')
-  expect(screen.getByText('Map unavailable')).toBeTruthy()
+  expect(await screen.findByText('Map assets: 26')).toBeTruthy()
   expect(screen.getByText('Assets unavailable')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
   await screen.findByText('Asset 0')

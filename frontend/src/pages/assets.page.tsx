@@ -12,7 +12,7 @@ import { EditAssetDrawer } from '@/components/edit-asset-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { useAssets } from '@/hooks/use-assets'
+import { useAssets, useMapAssets } from '@/hooks/use-assets'
 
 type TypeFilter = AssetType | 'all'
 type StatusFilter = AssetStatus | 'all'
@@ -29,16 +29,17 @@ export function AssetsPage() {
   const [deletingAsset, setDeletingAsset] = useState<Asset>()
   const [mapBounds, setMapBounds] = useState<AssetMapBounds>()
   const [offset, setOffset] = useState(0)
-  const query = {
+  const filters = {
     type: type === 'all' ? undefined : type,
     status: status === 'all' ? undefined : status,
     ...mapBounds,
-    limit: PAGE_SIZE,
-    offset,
   }
-  const assetsQuery = useAssets(query)
+  const assetsQuery = useAssets({ ...filters, limit: PAGE_SIZE, offset })
+  const mapQuery = useMapAssets(filters)
   const assets = assetsQuery.isError ? EMPTY_ASSETS : assetsQuery.data?.data ?? EMPTY_ASSETS
-  const selectedAsset = assets.find((asset) => asset.id === selectedAssetId)
+  const mapAssets = mapQuery.isError ? EMPTY_ASSETS : mapQuery.data ?? EMPTY_ASSETS
+  const selectedAsset = mapAssets.find((asset) => asset.id === selectedAssetId)
+    ?? assets.find((asset) => asset.id === selectedAssetId)
   const selectAsset = useCallback((assetId: string) => setSelectedAssetId(assetId), [])
   const searchMapArea = useCallback((bounds: AssetMapBounds) => {
     setMapBounds(bounds)
@@ -50,9 +51,11 @@ export function AssetsPage() {
   if (assetsQuery.isSuccess && !assetsQuery.isFetching) {
     const lastOffset = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1) * PAGE_SIZE
     if (offset > lastOffset) setOffset(lastOffset)
-    if (selectedAssetId && !assets.some((asset) => asset.id === selectedAssetId)) {
-      setSelectedAssetId(undefined)
-    }
+  }
+  if (mapQuery.isSuccess && !mapQuery.isFetching &&
+      assetsQuery.isSuccess && !assetsQuery.isFetching &&
+      selectedAssetId && !selectedAsset) {
+    setSelectedAssetId(undefined)
   }
 
   const clearMapArea = () => {
@@ -147,7 +150,6 @@ export function AssetsPage() {
                   disabled={!hasPreviousPage || assetsQuery.isFetching || assetsQuery.isError}
                   onClick={() => {
                     setOffset((current) => Math.max(0, current - PAGE_SIZE))
-                    setSelectedAssetId(undefined)
                   }}
                 >
                   <ChevronLeft />
@@ -159,7 +161,6 @@ export function AssetsPage() {
                   disabled={!hasNextPage || assetsQuery.isFetching || assetsQuery.isError}
                   onClick={() => {
                     setOffset((current) => current + PAGE_SIZE)
-                    setSelectedAssetId(undefined)
                   }}
                 >
                   <ChevronRight />
@@ -176,21 +177,21 @@ export function AssetsPage() {
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="size-2 rounded-full bg-emerald-500" />
-                {assetsQuery.isError ? 'Unavailable' : assetsQuery.isFetching ? 'Updating…' : 'Live data'}
+                {mapQuery.isError ? 'Unavailable' : mapQuery.isFetching ? 'Updating…' : 'Live data'}
               </div>
             </CardHeader>
             <Separator />
             <CardContent className="min-h-0 flex-1 p-3">
               <AssetMap
-                assets={assets}
+                assets={mapAssets}
                 selectedAssetId={selectedAssetId}
                 hasActiveAreaSearch={Boolean(mapBounds)}
                 onSelectAsset={selectAsset}
                 onSearchArea={searchMapArea}
                 onClearArea={clearMapArea}
-                isLoading={assetsQuery.isPending}
-                isError={assetsQuery.isError}
-                onRetry={() => void assetsQuery.refetch()}
+                isLoading={mapQuery.isPending}
+                isError={mapQuery.isError}
+                onRetry={() => void mapQuery.refetch()}
               />
             </CardContent>
           </Card>
@@ -225,7 +226,9 @@ export function AssetsPage() {
         }}
         onUpdated={(asset) => {
           setEditingAsset(undefined)
-          setSelectedAssetId(assets.some((item) => item.id === asset.id) ? asset.id : undefined)
+          setSelectedAssetId(
+            [...mapAssets, ...assets].some((item) => item.id === asset.id) ? asset.id : undefined,
+          )
         }}
       />
       <DeleteAssetDialog

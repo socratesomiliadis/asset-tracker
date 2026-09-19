@@ -49,6 +49,8 @@ export type GetAssetsParams = Pick<
   'type' | 'status' | 'minLat' | 'maxLat' | 'minLng' | 'maxLng'
 > & Required<Pick<AssetQueryParams, 'limit' | 'offset'>>
 
+export type AssetFilterParams = Omit<GetAssetsParams, 'limit' | 'offset'>
+
 export type { AssetPage } from '@asset-tracker/shared'
 
 async function requestAssets(
@@ -69,7 +71,7 @@ function jsonBody(method: 'POST' | 'PATCH', input: CreateAssetInput | UpdateAsse
   }
 }
 
-export async function getAssets(params: GetAssetsParams): Promise<AssetPage> {
+export async function getAssets(params: GetAssetsParams, signal?: AbortSignal): Promise<AssetPage> {
   const query = new URLSearchParams({
     limit: String(params.limit),
     offset: String(params.offset),
@@ -82,7 +84,7 @@ export async function getAssets(params: GetAssetsParams): Promise<AssetPage> {
   if (params.minLng !== undefined) query.set('minLng', String(params.minLng))
   if (params.maxLng !== undefined) query.set('maxLng', String(params.maxLng))
 
-  const response = await requestAssets(`?${query}`, 'Failed to load assets')
+  const response = await requestAssets(`?${query}`, 'Failed to load assets', { signal })
   return response.json() as Promise<AssetPage>
 }
 
