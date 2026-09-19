@@ -191,11 +191,13 @@ export function AssetForm(props: AssetFormProps) {
           </Field>
 
           <Field data-invalid={Boolean(errors.last_inspected_at)}>
-            <FieldLabel htmlFor={`${formId}-last-inspected-at`}>
-              Last inspected date
-            </FieldLabel>
+            <div className="flex items-center gap-1.5">
+              <FieldLabel htmlFor={`${formId}-last-inspected-at`}>Last inspected date</FieldLabel>
+              <span id={`${formId}-inspection-optional`} className="text-sm text-muted-foreground">(optional)</span>
+            </div>
             <Input
               id={`${formId}-last-inspected-at`}
+              aria-describedby={`${formId}-inspection-optional`}
               type="date"
               aria-invalid={Boolean(errors.last_inspected_at)}
               {...register('last_inspected_at', {
@@ -261,9 +263,13 @@ export function AssetForm(props: AssetFormProps) {
         </Field>
 
         <Field data-invalid={Boolean(errors.notes)}>
-          <FieldLabel htmlFor={`${formId}-notes`}>Notes</FieldLabel>
+          <div className="flex items-center gap-1.5">
+            <FieldLabel htmlFor={`${formId}-notes`}>Notes</FieldLabel>
+            <span id={`${formId}-notes-optional`} className="text-sm text-muted-foreground">(optional)</span>
+          </div>
           <Textarea
             id={`${formId}-notes`}
+            aria-describedby={`${formId}-notes-optional`}
             rows={4}
             className="max-h-64 overflow-y-auto"
             placeholder="Add maintenance or inspection notes"
