@@ -1,5 +1,6 @@
 import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
 import type { Asset } from '@asset-tracker/shared'
+import { normalizeLongitudeBounds } from '@asset-tracker/shared'
 import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
@@ -36,13 +37,11 @@ function getSearchBounds(map: Map): AssetMapBounds {
   const bounds = map.getBounds()
   const west = bounds.getWest()
   const east = bounds.getEast()
-  const spansDateLine = west < -180 || east > 180
 
   return {
     minLat: Math.max(-90, bounds.getSouth()),
     maxLat: Math.min(90, bounds.getNorth()),
-    minLng: spansDateLine ? -180 : west,
-    maxLng: spansDateLine ? 180 : east,
+    ...normalizeLongitudeBounds(west, east),
   }
 }
 

@@ -48,6 +48,14 @@ beforeEach(() => {
 })
 
 describe('asset API', () => {
+  it.each([[170, -170], [170, 190], [530, 550]])('accepts and normalizes crossing longitude bounds %s to %s', async (west, east) => {
+    const response = await request(app).get(`/api/assets?minLat=-10&maxLat=10&minLng=${west}&maxLng=${east}&type=sensor&status=warning&limit=25`)
+    expect(response.status).toBe(200)
+    expect(serviceMock.findMany).toHaveBeenCalledWith({
+      minLat: -10, maxLat: 10, minLng: 170, maxLng: -170,
+      type: 'sensor', status: 'warning', limit: 25, offset: 0,
+    })
+  })
   it('returns assets with pagination metadata', async () => {
     const response = await request(app).get('/api/assets?limit=20&offset=40')
 

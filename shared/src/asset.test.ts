@@ -5,6 +5,7 @@ import {
   createAssetInputSchema,
   updateAssetInputSchema,
   INSPECTION_DATE_ERROR,
+  normalizeLongitudeBounds,
 } from './asset.js'
 
 const asset = {
@@ -20,6 +21,29 @@ const asset = {
 } as const
 
 describe('asset schemas', () => {
+  it.each([
+    [-75, -70, -75, -70],
+    [170, 190, 170, -170],
+    [-190, -170, 170, -170],
+    [530, 550, 170, -170],
+    [190, 200, -170, -160],
+    [-550, -540, 170, -180],
+    [170, -170, 170, -170],
+    [-180, 180, -180, 180],
+    [180, 540, -180, 180],
+    [-200, 200, -180, 180],
+    [180, 180, -180, -180],
+    [180, -180, -180, -180],
+    [0, 0, 0, 0],
+  ])('normalizes longitude bounds %s to %s', (west, east, minLng, maxLng) => {
+    expect(normalizeLongitudeBounds(west, east)).toEqual({ minLng, maxLng })
+    expect(assetQueryParamsSchema.parse({ minLat: -10, maxLat: 10, minLng: west, maxLng: east }))
+      .toEqual({ minLat: -10, maxLat: 10, minLng, maxLng })
+  })
+
+  it.each(['', 'NaN', 'Infinity', '-Infinity'])('rejects non-finite longitude %j', (minLng) => {
+    expect(assetQueryParamsSchema.safeParse({ minLat: 0, maxLat: 1, minLng, maxLng: 10 }).success).toBe(false)
+  })
   it('rejects inspection before installation with a field error', () => {
     const { id: _id, ...input } = asset
     const result = createAssetInputSchema.safeParse({ ...input, last_inspected_at: '2025-01-09' })

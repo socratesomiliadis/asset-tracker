@@ -72,8 +72,15 @@ const latitudeQuerySchema = z.preprocess(
 
 const longitudeQuerySchema = z.preprocess(
   (value) => (value === '' ? Number.NaN : value),
-  z.coerce.number().min(-180).max(180),
+  z.coerce.number(),
 )
+
+export function normalizeLongitudeBounds(west: number, east: number) {
+  // Preserve a full-world viewport before wrapping its endpoints.
+  if (east - west >= 360) return { minLng: -180, maxLng: 180 }
+  const wrap = (longitude: number) => ((longitude + 180) % 360 + 360) % 360 - 180
+  return { minLng: wrap(west), maxLng: wrap(east) }
+}
 
 export const assetQueryParamsSchema = assetFiltersSchema
   .extend({
@@ -114,18 +121,10 @@ export const assetQueryParamsSchema = assetFiltersSchema
       })
     }
 
-    if (
-      value.minLng !== undefined &&
-      value.maxLng !== undefined &&
-      value.minLng > value.maxLng
-    ) {
-      context.addIssue({
-        code: 'custom',
-        message: 'minLng must be less than or equal to maxLng',
-        path: ['minLng'],
-      })
-    }
   })
+  .transform((value) => value.minLng !== undefined && value.maxLng !== undefined
+    ? { ...value, ...normalizeLongitudeBounds(value.minLng, value.maxLng) }
+    : value)
 
 export type AssetType = z.infer<typeof assetTypeSchema>
 export type AssetStatus = z.infer<typeof assetStatusSchema>

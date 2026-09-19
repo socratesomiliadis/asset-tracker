@@ -19,6 +19,7 @@ import {
 } from 'drizzle-orm'
 import { db } from '../db/index.js'
 import { assets, type AssetRow } from '../db/schema.js'
+import { longitudeCondition } from './longitude-condition.js'
 
 function toAsset(row: AssetRow): Asset {
   return {
@@ -52,8 +53,7 @@ function getConditions(params: AssetQueryParams) {
       : undefined,
     params.minLat !== undefined ? gte(assets.lat, params.minLat) : undefined,
     params.maxLat !== undefined ? lte(assets.lat, params.maxLat) : undefined,
-    params.minLng !== undefined ? gte(assets.lng, params.minLng) : undefined,
-    params.maxLng !== undefined ? lte(assets.lng, params.maxLng) : undefined,
+    longitudeCondition(params.minLng, params.maxLng),
   ]
 }
 
