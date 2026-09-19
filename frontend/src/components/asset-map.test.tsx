@@ -148,3 +148,20 @@ it('refreshes counts and severity on asset changes, reclusters on zoom out, and 
   unmount()
   expect(map.off).toHaveBeenCalledWith('moveend', expect.any(Function))
 })
+
+it('identifies marker types and labels only the selected asset without opening a duplicate popup', () => {
+  map.zoom = 16
+  const typedAssets = (['sensor', 'hydrant', 'valve', 'pipe'] as const).map((type, index) => ({
+    ...assets[0], id: String(index), name: `Test ${type}`, type,
+  }))
+  const { rerender } = render(<AssetMap {...props} assets={typedAssets} selectedAssetId="1" onSelectAsset={vi.fn()} />)
+  for (const asset of typedAssets) {
+    const marker = screen.getByRole('button', { name: `Select ${asset.name}` })
+    expect(marker.querySelector('svg')?.getAttribute('data-asset-type')).toBe(asset.type)
+    expect(marker.title).toContain('OK')
+    expect(marker.querySelector('.asset-pin-label')?.textContent ?? null).toBe(asset.id === '1' ? asset.name : null)
+  }
+  rerender(<AssetMap {...props} assets={typedAssets} selectedAssetId="2" onSelectAsset={vi.fn()} />)
+  expect(screen.getByRole('button', { name: 'Select Test hydrant' }).querySelector('.asset-pin-label')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Select Test valve' }).querySelector('.asset-pin-label')?.textContent).toBe('Test valve')
+})

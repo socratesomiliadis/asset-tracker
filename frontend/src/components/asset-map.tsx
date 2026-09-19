@@ -1,8 +1,8 @@
-import { assetStatusLabels } from '@/lib/asset-labels'
+import { assetStatusLabels, assetTypeLabels } from '@/lib/asset-labels'
 import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
 import type { Asset, AssetStatus } from '@asset-tracker/shared'
 import { normalizeLongitudeBounds } from '@asset-tracker/shared'
-import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
+import { LngLatBounds, Map, Marker, NavigationControl } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Supercluster from 'supercluster'
 import { Search } from 'lucide-react'
@@ -14,6 +14,14 @@ const markerColors = {
   warning: '#f59e0b',
   critical: '#ef4444',
 } satisfies Record<Asset['status'], string>
+
+// Simple type silhouettes remain readable at marker size.
+const typePaths = {
+  sensor: 'M12 11v2M8 8a6 6 0 0 0 0 8M16 8a6 6 0 0 1 0 8M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14',
+  hydrant: 'M12 3C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-12Z',
+  valve: 'M12 3 21 12 12 21 3 12Z M8 12h8M12 8v8',
+  pipe: 'M3 6h10a5 5 0 0 1 5 5v10M3 12h8a1 1 0 0 1 1 1v8M3 4v10M10 21h10',
+} satisfies Record<Asset['type'], string>
 
 const programmaticMoveEvent = { isProgrammaticMove: true } as const
 
@@ -150,7 +158,7 @@ export function AssetMap({
           element.addEventListener('mouseleave', schedulePreviewClose)
           element.addEventListener('focus', showPreview)
           element.addEventListener('blur', schedulePreviewClose)
-          element.className = 'flex items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition-shadow duration-150 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-900'
+          element.className = 'asset-cluster flex items-center justify-center rounded-full bg-slate-900 text-white'
           const size = properties.point_count >= 100 ? 56 : 48
           element.style.width = `${size}px`
           element.style.height = `${size}px`
@@ -195,20 +203,29 @@ export function AssetMap({
 
         const asset = properties as Asset
         const isSelected = asset.id === selectedAssetId
-        element.title = `${asset.name} · ${assetStatusLabels[asset.status]}`
         element.setAttribute('aria-label', `Select ${asset.name}`)
         element.setAttribute('aria-pressed', String(isSelected))
-        element.style.width = isSelected ? '22px' : '16px'
-        element.style.height = isSelected ? '22px' : '16px'
-        element.style.borderRadius = '9999px'
-        element.style.border = '3px solid white'
+        element.className = 'asset-pin'
         element.style.backgroundColor = markerColors[asset.status]
-        element.style.boxShadow = isSelected
-          ? '0 0 0 3px rgba(15, 23, 42, 0.7)'
-          : '0 1px 4px rgba(15, 23, 42, 0.4)'
+        element.style.setProperty('--asset-color', markerColors[asset.status])
+        element.dataset.selected = String(isSelected)
+        element.title = `${asset.name} · ${assetTypeLabels[asset.type]} · ${assetStatusLabels[asset.status]}`
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        icon.setAttribute('viewBox', '0 0 24 24')
+        icon.setAttribute('aria-hidden', 'true')
+        icon.setAttribute('data-asset-type', asset.type)
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+        path.setAttribute('d', typePaths[asset.type])
+        icon.append(path)
+        element.append(icon)
+        if (isSelected) {
+          const label = document.createElement('span')
+          label.className = 'asset-pin-label'
+          label.textContent = asset.name
+          element.append(label)
+        }
         element.addEventListener('click', () => onSelectAsset(asset.id))
         return new Marker({ element }).setLngLat(coordinates)
-          .setPopup(new Popup({ closeButton: false, offset: 12 }).setText(`${asset.name} · ${assetStatusLabels[asset.status]}`))
           .addTo(map)
       })
     }
@@ -261,7 +278,7 @@ export function AssetMap({
   }
 
   return (
-    <div className="relative h-full min-h-[32rem] overflow-hidden rounded-lg lg:min-h-0">
+    <div className="asset-map relative h-full min-h-[32rem] overflow-hidden rounded-xl lg:min-h-0">
       <div ref={containerRef} className="h-full w-full" aria-label="Asset map" />
 
       <Popover open={Boolean(clusterPreview)} onOpenChange={(open) => { if (!open) dismissPreview() }}>
@@ -297,7 +314,7 @@ export function AssetMap({
         </PopoverContent>
       </Popover>
 
-      <div className="absolute top-3 left-3 flex gap-2 rounded-lg border bg-background/95 px-3 py-2 text-xs shadow-sm backdrop-blur">
+      <div className="absolute bottom-7 left-3 flex gap-3 rounded-full border border-white/70 bg-white/90 px-3.5 py-2 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur-md">
         {Object.entries(markerColors).map(([status, color]) => (
           <span className="flex items-center gap-1.5" key={status}>
             <span className="size-2 rounded-full" style={{ backgroundColor: color }} />

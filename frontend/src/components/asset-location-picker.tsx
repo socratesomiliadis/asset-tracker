@@ -113,7 +113,7 @@ export function AssetLocationPicker({
   }, [location])
 
   return (
-    <div className="relative h-64 overflow-hidden rounded-xl border bg-muted">
+    <div className="asset-map relative h-64 overflow-hidden rounded-xl border bg-muted">
       <div
         ref={containerRef}
         className="h-full w-full"
