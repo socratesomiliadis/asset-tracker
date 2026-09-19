@@ -63,6 +63,11 @@ export function AssetsPage() {
     setOffset(0)
     setSelectedAssetId(undefined)
   }
+  const clearAllFilters = () => {
+    setType('all')
+    setStatus('all')
+    clearMapArea()
+  }
   const firstVisible = assets.length === 0 ? 0 : offset + 1
   const lastVisible = assets.length === 0 ? 0 : Math.min(offset + assets.length, total)
   const hasPreviousPage = offset > 0
@@ -121,6 +126,7 @@ export function AssetsPage() {
                 </div>
               </div>
               <AssetFilters
+                onClearAllFilters={clearAllFilters}
                 hasActiveAreaSearch={Boolean(mapBounds)}
                 onClearArea={clearMapArea}
                 type={type}
@@ -190,7 +196,6 @@ export function AssetsPage() {
                 hasActiveAreaSearch={Boolean(mapBounds)}
                 onSelectAsset={selectAsset}
                 onSearchArea={searchMapArea}
-                onClearArea={clearMapArea}
                 isLoading={mapQuery.isPending}
                 isError={mapQuery.isError}
                 onRetry={() => void mapQuery.refetch()}
@@ -214,9 +219,7 @@ export function AssetsPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onCreated={() => {
-          clearMapArea()
-          setType('all')
-          setStatus('all')
+          clearAllFilters()
           setIsCreateOpen(false)
         }}
       />

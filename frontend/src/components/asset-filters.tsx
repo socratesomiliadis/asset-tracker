@@ -20,6 +20,7 @@ type AssetFiltersProps = {
   type: FilterValue<AssetType>
   status: FilterValue<AssetStatus>
   hasActiveAreaSearch: boolean
+  onClearAllFilters: () => void
   onClearArea: () => void
   onTypeChange: (value: FilterValue<AssetType>) => void
   onStatusChange: (value: FilterValue<AssetStatus>) => void
@@ -30,6 +31,7 @@ export function AssetFilters({
   status,
   hasActiveAreaSearch,
   onClearArea,
+  onClearAllFilters,
   onTypeChange,
   onStatusChange,
 }: AssetFiltersProps) {
@@ -70,18 +72,27 @@ export function AssetFilters({
           </SelectContent>
         </Select>
       </Field>
-      {hasActiveAreaSearch && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="col-span-2 h-7 w-fit rounded-full text-xs"
-          aria-label="Remove area filter"
-          onClick={onClearArea}
-        >
-          Area filter active
-          <X className="size-3" aria-hidden="true" />
-        </Button>
+      {(hasActiveAreaSearch || type !== 'all' || status !== 'all') && (
+        <div className="col-span-2 flex flex-wrap items-center justify-between gap-2">
+          {hasActiveAreaSearch && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-7 w-fit rounded-full text-xs"
+              aria-label="Remove area filter"
+              onClick={onClearArea}
+            >
+              Area filter active
+              <X className="size-3" aria-hidden="true" />
+            </Button>
+          )}
+          {(type !== 'all' || status !== 'all') && (
+            <Button type="button" variant="ghost" size="sm" className="ml-auto h-7 px-2 text-xs text-muted-foreground" onClick={onClearAllFilters}>
+              Clear all filters
+            </Button>
+          )}
+        </div>
       )}
     </div>
   )

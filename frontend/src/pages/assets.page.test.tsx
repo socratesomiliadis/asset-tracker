@@ -14,12 +14,11 @@ import { AssetsPage } from './assets.page'
 
 vi.mock('@/lib/assets-api', () => ({ getAssets: vi.fn() }))
 vi.mock('@/components/asset-map', () => ({
-  AssetMap: ({ assets, onSelectAsset, onSearchArea, onClearArea, hasActiveAreaSearch, isError, onRetry }: ComponentProps<typeof AssetMap>) => <div>
+  AssetMap: ({ assets, onSelectAsset, onSearchArea, isError, onRetry }: ComponentProps<typeof AssetMap>) => <div>
     <span>{isError ? 'Map unavailable' : `Map assets: ${assets.length}`}</span>
     {assets.map((asset) => <button key={asset.id} onClick={() => onSelectAsset(asset.id)}>Marker {asset.name}</button>)}
     {isError && <button onClick={onRetry}>Retry map</button>}
     <button onClick={() => onSearchArea({ minLat: 0, maxLat: 1, minLng: 0, maxLng: 1 })}>Search area</button>
-    {hasActiveAreaSearch && <button onClick={onClearArea}>Clear area</button>}
   </div>,
 }))
 vi.mock('@/components/asset-details', () => ({
@@ -39,9 +38,11 @@ vi.mock('@/components/create-asset-drawer', () => ({
   CreateAssetDrawer: ({ open, onCreated }: ComponentProps<typeof CreateAssetDrawer>) => open && <button onClick={() => onCreated(asset)}>Finish creation</button>,
 }))
 vi.mock('@/components/asset-filters', () => ({
-  AssetFilters: ({ onTypeChange, onStatusChange }: ComponentProps<typeof AssetFilters>) => <>
+  AssetFilters: ({ onTypeChange, onStatusChange, onClearAllFilters, onClearArea, hasActiveAreaSearch, type, status }: ComponentProps<typeof AssetFilters>) => <>
     <button onClick={() => onTypeChange('sensor')}>Filter sensors</button>
     <button onClick={() => onStatusChange('warning')}>Filter warning</button>
+    {hasActiveAreaSearch && <button onClick={onClearArea}>Clear area</button>}
+    {(type !== 'all' || status !== 'all') && <button onClick={onClearAllFilters}>Clear all filters</button>}
   </>,
 }))
 
@@ -64,6 +65,31 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); client.clear(); vi.clearAllMocks() })
 function mount() { render(<QueryClientProvider client={client}><AssetsPage /></QueryClientProvider>) }
+
+it('clears type, status, area, pagination, and selection together', async () => {
+  mount()
+  await screen.findByText('Asset 0')
+  fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+  fireEvent.click(await screen.findByText('Asset 25'))
+  expect(screen.getByText('Details: Asset 25')).toBeTruthy()
+  fireEvent.click(screen.getByText('Filter sensors'))
+  fireEvent.click(screen.getByText('Filter warning'))
+  fireEvent.click(screen.getByText('Search area'))
+  await screen.findByText('No assets match these filters.')
+  expect(screen.getAllByText('No assets match these filters.')).toHaveLength(1)
+  expect(screen.getAllByRole('button', { name: 'Clear all filters' })).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }))
+  await screen.findByText('1–25 of 26')
+  expect(screen.queryByText('Clear area')).toBeNull()
+  expect(screen.queryByText('Details: Asset 25')).toBeNull()
+  await waitFor(() => expect(vi.mocked(getAssets).mock.lastCall?.[0]).toMatchObject({
+    type: undefined, status: undefined, offset: 0,
+  }))
+  expect(vi.mocked(getAssets).mock.lastCall?.[0].minLat).toBeUndefined()
+  expect(vi.mocked(getAssets).mock.lastCall?.[0].maxLat).toBeUndefined()
+  expect(vi.mocked(getAssets).mock.lastCall?.[0].minLng).toBeUndefined()
+  expect(vi.mocked(getAssets).mock.lastCall?.[0].maxLng).toBeUndefined()
+})
 
 it('loads all map pages with bounded requests and selects assets outside the list page', async () => {
   rows = Array.from({ length: 205 }, (_, i) => ({ ...asset, id: String(i), name: `Asset ${i}` }))
@@ -176,6 +202,8 @@ it('keeps the map available when the list fails and recovers on retry', async ()
   vi.mocked(getAssets).mockRejectedValueOnce(new Error('API unavailable'))
   mount()
   await screen.findByText('Assets could not be loaded')
+  expect(screen.queryByText('No assets match these filters.')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Clear all filters' })).toBeNull()
   expect(await screen.findByText('Map assets: 26')).toBeTruthy()
   expect(screen.getByText('Assets unavailable')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }))

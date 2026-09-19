@@ -48,7 +48,7 @@ it.each([
   vi.stubGlobal('ResizeObserver', class { observe() {}; disconnect() {} })
   const onSearchArea = vi.fn()
   render(<AssetMap assets={[]} hasActiveAreaSearch={false} isLoading={false} isError={false}
-    onRetry={vi.fn()} onClearArea={vi.fn()} onSelectAsset={vi.fn()} onSearchArea={onSearchArea} />)
+    onRetry={vi.fn()} onSelectAsset={vi.fn()} onSearchArea={onSearchArea} />)
   const move = map.on.mock.calls.find(([event]) => event === 'moveend')![1]
   act(() => move({}))
   fireEvent.click(screen.getByRole('button', { name: 'Search this area' }))
@@ -62,7 +62,18 @@ const assets = ['ok', 'warning', 'critical'].map((status, index) => ({
   installed_at: '2026-01-01', last_inspected_at: null, notes: '',
 }))
 const props = { hasActiveAreaSearch: true, isLoading: false, isError: false,
-  onRetry: vi.fn(), onClearArea: vi.fn(), onSearchArea: vi.fn() }
+  onRetry: vi.fn(), onSearchArea: vi.fn() }
+
+it('keeps empty maps unobstructed while retaining distinct API failure and retry feedback', () => {
+  const onRetry = vi.fn()
+  const { rerender } = render(<AssetMap {...props} assets={[]} onSelectAsset={vi.fn()} onRetry={onRetry} />)
+  expect(screen.queryByRole('status')).toBeNull()
+  expect(screen.queryByRole('button', { name: /Clear/ })).toBeNull()
+  rerender(<AssetMap {...props} assets={[]} isError onSelectAsset={vi.fn()} onRetry={onRetry} />)
+  expect(screen.getByText('Assets could not be loaded.')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(onRetry).toHaveBeenCalledOnce()
+})
 
 function zoomTo(zoom: number) {
   map.zoom = zoom

@@ -10,9 +10,8 @@ import { AssetsPage } from './assets.page'
 // These tests exercise the real controls, list, details, and request serialization.
 // Maps are unrelated to these interactions and need no WebGL implementation.
 vi.mock('@/components/asset-map', () => ({
-  AssetMap: ({ onSearchArea, onClearArea, hasActiveAreaSearch }: ComponentProps<typeof AssetMap>) => <>
+  AssetMap: ({ onSearchArea }: ComponentProps<typeof AssetMap>) => <>
     <button onClick={() => onSearchArea({ minLat: 0, maxLat: 1, minLng: 0, maxLng: 1 })}>Search this area</button>
-    {hasActiveAreaSearch && <button onClick={onClearArea}>Clear area filter</button>}
   </>,
 }))
 vi.mock('@/components/asset-location-picker', () => ({ AssetLocationPicker: () => null }))
@@ -62,16 +61,17 @@ function latestRequest() {
   return new URL(String(fetchMock.mock.lastCall?.[0]), 'http://localhost').searchParams
 }
 
-it('keeps the area chip and map clear control synchronized without resetting type or status', async () => {
+it('keeps area removal in the filter controls without resetting type or status', async () => {
   mount()
   await screen.findByRole('button', { name: /North sensor/ })
   expect(screen.queryByText('Area filter active')).toBeNull()
   await chooseFilter('Filter by asset type', 'Sensors')
   await chooseFilter('Filter by asset status', 'Warning')
-  for (const action of ['Remove area filter', 'Clear area filter']) {
+  for (const action of ['Remove area filter']) {
     await user.click(screen.getByRole('button', { name: 'Search this area' }))
     expect(screen.getByText('Area filter active')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Clear area filter' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Clear area filter' })).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Clear all filters' })).toHaveLength(1)
     await waitFor(() => expect(latestRequest().get('minLat')).toBe('0'))
     await user.click(screen.getByRole('button', { name: action }))
     expect(screen.queryByText('Area filter active')).toBeNull()

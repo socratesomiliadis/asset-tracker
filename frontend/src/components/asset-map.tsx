@@ -22,7 +22,6 @@ type AssetMapProps = {
   isLoading: boolean
   isError: boolean
   onRetry: () => void
-  onClearArea: () => void
   onSelectAsset: (assetId: string) => void
   onSearchArea: (bounds: AssetMapBounds) => void
 }
@@ -53,7 +52,6 @@ export function AssetMap({
   isLoading,
   isError,
   onRetry,
-  onClearArea,
   onSelectAsset,
   onSearchArea,
 }: AssetMapProps) {
@@ -244,16 +242,11 @@ export function AssetMap({
         ))}
       </div>
 
-      {(isLoading || isError || assets.length === 0) && (
+      {(isLoading || isError) && (
         <div role="status" className="absolute bottom-14 left-1/2 -translate-x-1/2 rounded-lg border bg-background/95 p-4 text-center text-sm shadow-sm">
-          {isError ? 'Assets could not be loaded.' : isLoading ? 'Loading assets…' : 'No assets match these filters.'}
+          {isError ? 'Assets could not be loaded.' : 'Loading assets…'}
           {isError && <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>Try again</Button>}
         </div>
-      )}
-      {hasActiveAreaSearch && (
-        <Button variant="outline" size="sm" className="absolute bottom-3 left-3" onClick={onClearArea}>
-          Clear area filter
-        </Button>
       )}
       {showSearchArea && (
         <Button
