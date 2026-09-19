@@ -3,8 +3,6 @@ import type {
   UpdateAssetInput,
 } from '@asset-tracker/shared'
 import {
-  assetTypeSchema,
-  assetStatusSchema,
   createAssetInputSchema,
   updateAssetInputSchema,
   INSPECTION_DATE_ERROR,
@@ -169,14 +167,12 @@ export function AssetForm(props: AssetFormProps) {
             name="type"
             label="Type"
             id={`${formId}-type`}
-            options={assetTypeSchema.options}
           />
           <AssetSelectField
             control={control}
             name="status"
             label="Status"
             id={`${formId}-status`}
-            options={assetStatusSchema.options}
           />
         </div>
 

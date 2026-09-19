@@ -1,3 +1,4 @@
+import { assetTypeLabels, assetStatusLabels } from '@/lib/asset-labels'
 import type { CreateAssetInput } from '@asset-tracker/shared'
 import { Controller, type Control } from 'react-hook-form'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
@@ -14,7 +15,6 @@ type AssetSelectFieldProps = {
   name: 'type' | 'status'
   label: string
   id: string
-  options: readonly string[]
 }
 
 export function AssetSelectField({
@@ -22,8 +22,8 @@ export function AssetSelectField({
   name,
   label,
   id,
-  options,
 }: AssetSelectFieldProps) {
+  const labels = name === 'type' ? assetTypeLabels : assetStatusLabels
   return (
     <Controller
       control={control}
@@ -31,14 +31,14 @@ export function AssetSelectField({
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
           <FieldLabel htmlFor={id}>{label}</FieldLabel>
-          <Select name={field.name} value={field.value} onValueChange={field.onChange}>
+          <Select items={labels} name={field.name} value={field.value} onValueChange={field.onChange}>
             <SelectTrigger id={id} className="w-full" aria-invalid={fieldState.invalid}>
               <SelectValue placeholder={`Select a ${name}`} />
             </SelectTrigger>
             <SelectContent>
-              {options.map((option) => (
+              {Object.entries(labels).map(([option, displayLabel]) => (
                 <SelectItem value={option} key={option}>
-                  <span className="capitalize">{option}</span>
+                  {displayLabel}
                 </SelectItem>
               ))}
             </SelectContent>

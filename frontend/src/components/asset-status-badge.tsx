@@ -1,3 +1,4 @@
+import { assetStatusLabels } from '@/lib/asset-labels'
 import type { AssetStatus } from '@asset-tracker/shared'
 import { Badge } from '@/components/ui/badge'
 
@@ -10,7 +11,7 @@ const statusStyles = {
 export function AssetStatusBadge({ status }: { status: AssetStatus }) {
   return (
     <Badge variant="outline" className={statusStyles[status]}>
-      {status}
+      {assetStatusLabels[status]}
     </Badge>
   )
 }

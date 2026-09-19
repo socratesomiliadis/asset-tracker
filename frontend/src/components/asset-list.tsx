@@ -1,3 +1,4 @@
+import { assetTypeLabels } from '@/lib/asset-labels'
 import { AssetStatusBadge } from '@/components/asset-status-badge'
 import type { Asset } from '@asset-tracker/shared'
 import { MapPin } from 'lucide-react'
@@ -102,8 +103,8 @@ export function AssetList({
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     <AssetStatusBadge status={asset.status} />
-                    <span className="text-xs capitalize text-muted-foreground">
-                      {asset.type}
+                    <span className="text-xs text-muted-foreground">
+                      {assetTypeLabels[asset.type]}
                     </span>
                   </div>
                 </div>

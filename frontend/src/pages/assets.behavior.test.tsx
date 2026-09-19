@@ -65,7 +65,7 @@ it('keeps area removal in the filter controls without resetting type or status',
   mount()
   await screen.findByRole('button', { name: /North sensor/ })
   expect(screen.queryByText('Area filter active')).toBeNull()
-  await chooseFilter('Filter by asset type', 'Sensors')
+  await chooseFilter('Filter by asset type', 'Sensor')
   await chooseFilter('Filter by asset status', 'Warning')
   for (const action of ['Remove area filter']) {
     await user.click(screen.getByRole('button', { name: 'Search this area' }))
@@ -90,7 +90,7 @@ it('sends the selected type and status, and removes filters when reset', async (
   expect(latestRequest().has('type')).toBe(false)
   expect(latestRequest().has('status')).toBe(false)
 
-  await chooseFilter('Filter by asset type', 'Sensors')
+  await chooseFilter('Filter by asset type', 'Sensor')
   await waitFor(() => expect(latestRequest().get('type')).toBe('sensor'))
 
   await chooseFilter('Filter by asset status', 'Warning')

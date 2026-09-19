@@ -3,9 +3,27 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AssetForm } from './asset-form'
 import { INSPECTION_DATE_ERROR } from '@asset-tracker/shared'
 import { AssetsApiError } from '@/lib/assets-api'
+import userEvent from '@testing-library/user-event'
 
 vi.mock('@/components/asset-location-picker', () => ({ AssetLocationPicker: () => null }))
 afterEach(cleanup)
+
+it('displays readable select labels while submitting the original API enum values', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<AssetForm mode="edit" initialValues={{
+    name: 'Test', type: 'pipe', status: 'ok', lat: 40, lng: -70,
+    installed_at: '2026-01-01', last_inspected_at: null, notes: '',
+  }} onSubmit={onSubmit} />)
+  expect(screen.getByRole('combobox', { name: 'Type' }).textContent).toContain('Pipe')
+  expect(screen.getByRole('combobox', { name: 'Status' }).textContent).toContain('OK')
+  await user.click(screen.getByRole('combobox', { name: 'Type' }))
+  await user.click(await screen.findByRole('option', { name: 'Sensor' }))
+  await user.click(screen.getByRole('combobox', { name: 'Status' }))
+  await user.click(await screen.findByRole('option', { name: 'Critical' }))
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledExactlyOnceWith({ type: 'sensor', status: 'critical' }))
+})
 
 it.each(['create', 'edit'] as const)('shows an actionable inspection error in %s mode and allows correction', async (mode) => {
   const onSubmit = vi.fn()

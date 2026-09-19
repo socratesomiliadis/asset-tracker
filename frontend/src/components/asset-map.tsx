@@ -1,5 +1,6 @@
+import { assetStatusLabels } from '@/lib/asset-labels'
 import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
-import type { Asset } from '@asset-tracker/shared'
+import type { Asset, AssetStatus } from '@asset-tracker/shared'
 import { normalizeLongitudeBounds } from '@asset-tracker/shared'
 import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -121,7 +122,7 @@ export function AssetMap({
             warning: properties.warning,
             critical: properties.critical,
           }
-          const summary = `${properties.point_count} assets; ${counts.ok} OK; ${counts.warning} warning; ${counts.critical} critical`
+          const summary = `${properties.point_count} assets; ${counts.ok} ${assetStatusLabels.ok}; ${counts.warning} ${assetStatusLabels.warning}; ${counts.critical} ${assetStatusLabels.critical}`
           element.title = summary
           element.setAttribute('aria-label', `Expand cluster: ${summary}`)
           element.className = 'flex items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition-shadow duration-150 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-900'
@@ -166,7 +167,7 @@ export function AssetMap({
 
         const asset = properties as Asset
         const isSelected = asset.id === selectedAssetId
-        element.title = `${asset.name} · ${asset.status}`
+        element.title = `${asset.name} · ${assetStatusLabels[asset.status]}`
         element.setAttribute('aria-label', `Select ${asset.name}`)
         element.setAttribute('aria-pressed', String(isSelected))
         element.style.width = isSelected ? '22px' : '16px'
@@ -179,7 +180,7 @@ export function AssetMap({
           : '0 1px 4px rgba(15, 23, 42, 0.4)'
         element.addEventListener('click', () => onSelectAsset(asset.id))
         return new Marker({ element }).setLngLat(coordinates)
-          .setPopup(new Popup({ closeButton: false, offset: 12 }).setText(`${asset.name} · ${asset.status}`))
+          .setPopup(new Popup({ closeButton: false, offset: 12 }).setText(`${asset.name} · ${assetStatusLabels[asset.status]}`))
           .addTo(map)
       })
     }
@@ -235,9 +236,9 @@ export function AssetMap({
 
       <div className="absolute top-3 left-3 flex gap-2 rounded-lg border bg-background/95 px-3 py-2 text-xs shadow-sm backdrop-blur">
         {Object.entries(markerColors).map(([status, color]) => (
-          <span className="flex items-center gap-1.5 capitalize" key={status}>
+          <span className="flex items-center gap-1.5" key={status}>
             <span className="size-2 rounded-full" style={{ backgroundColor: color }} />
-            {status}
+            {assetStatusLabels[status as AssetStatus]}
           </span>
         ))}
       </div>

@@ -1,3 +1,4 @@
+import { assetTypeFilterLabels, assetStatusFilterLabels } from '@/lib/asset-labels'
 import type { AssetStatus, AssetType } from '@asset-tracker/shared'
 import { useId } from 'react'
 import { X } from 'lucide-react'
@@ -13,8 +14,6 @@ import {
 
 type FilterValue<T extends string> = T | 'all'
 
-const typeLabels = { all: 'All types', pipe: 'Pipes', hydrant: 'Hydrants', sensor: 'Sensors', valve: 'Valves' }
-const statusLabels = { all: 'All statuses', ok: 'OK', warning: 'Warning', critical: 'Critical' }
 
 type AssetFiltersProps = {
   type: FilterValue<AssetType>
@@ -40,16 +39,14 @@ export function AssetFilters({
     <div className="grid grid-cols-2 gap-3">
       <Field className="gap-2">
         <FieldLabel htmlFor={`${id}-type`}>Type</FieldLabel>
-        <Select items={typeLabels} value={type} onValueChange={(value) => onTypeChange(value as FilterValue<AssetType>)}>
+        <Select items={assetTypeFilterLabels} value={type} onValueChange={(value) => onTypeChange(value as FilterValue<AssetType>)}>
           <SelectTrigger id={`${id}-type`} className="w-full" aria-label="Filter by asset type">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            <SelectItem value="pipe">Pipes</SelectItem>
-            <SelectItem value="hydrant">Hydrants</SelectItem>
-            <SelectItem value="sensor">Sensors</SelectItem>
-            <SelectItem value="valve">Valves</SelectItem>
+            {Object.entries(assetTypeFilterLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </Field>
@@ -57,7 +54,7 @@ export function AssetFilters({
       <Field className="gap-2">
         <FieldLabel htmlFor={`${id}-status`}>Status</FieldLabel>
         <Select
-          items={statusLabels}
+          items={assetStatusFilterLabels}
           value={status}
           onValueChange={(value) => onStatusChange(value as FilterValue<AssetStatus>)}
         >
@@ -65,10 +62,9 @@ export function AssetFilters({
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="ok">OK</SelectItem>
-            <SelectItem value="warning">Warning</SelectItem>
-            <SelectItem value="critical">Critical</SelectItem>
+            {Object.entries(assetStatusFilterLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </Field>

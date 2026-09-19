@@ -1,3 +1,4 @@
+import { assetTypeLabels } from '@/lib/asset-labels'
 import { AssetStatusBadge } from '@/components/asset-status-badge'
 import type { Asset } from '@asset-tracker/shared'
 import { CalendarDays, MapPin, Pencil, Trash2, X } from 'lucide-react'
@@ -48,8 +49,8 @@ function DetailsFields({ asset }: { asset: Asset }) {
         <div>
           <dt className="text-xs font-medium text-muted-foreground">Type</dt>
           <dd className="mt-1.5">
-            <Badge variant="secondary" className="capitalize">
-              {asset.type}
+            <Badge variant="secondary">
+              {assetTypeLabels[asset.type]}
             </Badge>
           </dd>
         </div>
