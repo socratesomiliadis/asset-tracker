@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AssetMap } from './asset-map'
 
@@ -81,13 +81,31 @@ function zoomTo(zoom: number) {
   act(() => renderMarkers({}))
 }
 
+it('shows a shadcn status popover on hover and focus without interfering with expansion', async () => {
+  render(<AssetMap {...props} assets={assets} onSelectAsset={vi.fn()} />)
+  const cluster = screen.getByRole('button', { name: 'Expand cluster: 3 assets; 1 OK; 1 Warning; 1 Critical' })
+  expect(cluster.title).toBe('')
+  fireEvent.mouseEnter(cluster)
+  const preview = await screen.findByRole('dialog', { name: '3 assets' })
+  expect(preview.getAttribute('data-slot')).toBe('popover-content')
+  for (const label of ['OK', 'Warning', 'Critical']) expect(within(preview).getByText(label)).toBeTruthy()
+  expect(within(preview).getAllByRole('definition').map((entry) => entry.textContent)).toEqual(['1', '1', '1'])
+  fireEvent.mouseLeave(cluster)
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  fireEvent.focus(cluster)
+  await screen.findByRole('dialog', { name: '3 assets' })
+  fireEvent.click(cluster)
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  expect(map.easeTo).toHaveBeenCalledWith(expect.objectContaining({ zoom: expect.any(Number) }), { isProgrammaticMove: true })
+})
+
 it('counts mixed statuses and expands a cluster into selectable status-colored markers', () => {
   const onSelectAsset = vi.fn()
   const { rerender } = render(<AssetMap {...props} assets={assets} onSelectAsset={onSelectAsset} />)
   const cluster = screen.getByRole('button', { name: 'Expand cluster: 3 assets; 1 OK; 1 Warning; 1 Critical' })
   expect(cluster.textContent).toContain('3')
-  expect(cluster.title).toContain('1 Warning; 1 Critical')
-  expect(cluster.title).toContain('1 OK')
+  expect(cluster.getAttribute('aria-label')).toContain('1 Warning; 1 Critical')
+  expect(cluster.getAttribute('aria-label')).toContain('1 OK')
   const segments = cluster.querySelectorAll('circle')
   expect([...segments].map((segment) => segment.getAttribute('stroke'))).toEqual(['#10b981', '#f59e0b', '#ef4444'])
   for (const segment of segments) expect(Number(segment.getAttribute('stroke-dasharray')!.split(' ')[0])).toBeCloseTo(100 / 3)

@@ -3,10 +3,11 @@ import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-
 import type { Asset, AssetStatus } from '@asset-tracker/shared'
 import { normalizeLongitudeBounds } from '@asset-tracker/shared'
 import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Supercluster from 'supercluster'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
 
 const markerColors = {
   ok: '#10b981',
@@ -60,6 +61,21 @@ export function AssetMap({
   const mapRef = useRef<Map | null>(null)
   const markersRef = useRef<Marker[]>([])
   const [showSearchArea, setShowSearchArea] = useState(false)
+  const [clusterPreview, setClusterPreview] = useState<{
+    anchor: HTMLElement
+    total: number
+    counts: Record<AssetStatus, number>
+  }>()
+  const previewCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const keepPreviewOpen = useCallback(() => clearTimeout(previewCloseTimer.current), [])
+  const dismissPreview = useCallback(() => {
+    clearTimeout(previewCloseTimer.current)
+    setClusterPreview(undefined)
+  }, [])
+  const schedulePreviewClose = useCallback(() => {
+    clearTimeout(previewCloseTimer.current)
+    previewCloseTimer.current = setTimeout(() => setClusterPreview(undefined), 180)
+  }, [])
   const clusters = useMemo(() => new Supercluster<Asset, { warning: number; critical: number }>({
     radius: 60,
     maxZoom: 14,
@@ -97,6 +113,7 @@ export function AssetMap({
     resizeObserver.observe(container)
 
     return () => {
+      clearTimeout(previewCloseTimer.current)
       resizeObserver.disconnect()
       markersRef.current.forEach((marker) => marker.remove())
       map.remove()
@@ -109,6 +126,7 @@ export function AssetMap({
     if (!map) return
 
     const renderMarkers = () => {
+      dismissPreview()
       markersRef.current.forEach((marker) => marker.remove())
       markersRef.current = clusters.getClusters([-180, -90, 180, 90], Math.floor(map.getZoom())).map((feature) => {
         const element = document.createElement('button')
@@ -123,8 +141,15 @@ export function AssetMap({
             critical: properties.critical,
           }
           const summary = `${properties.point_count} assets; ${counts.ok} ${assetStatusLabels.ok}; ${counts.warning} ${assetStatusLabels.warning}; ${counts.critical} ${assetStatusLabels.critical}`
-          element.title = summary
           element.setAttribute('aria-label', `Expand cluster: ${summary}`)
+          const showPreview = () => {
+            keepPreviewOpen()
+            setClusterPreview({ anchor: element, total: properties.point_count, counts })
+          }
+          element.addEventListener('mouseenter', showPreview)
+          element.addEventListener('mouseleave', schedulePreviewClose)
+          element.addEventListener('focus', showPreview)
+          element.addEventListener('blur', schedulePreviewClose)
           element.className = 'flex items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition-shadow duration-150 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-900'
           const size = properties.point_count >= 100 ? 56 : 48
           element.style.width = `${size}px`
@@ -157,11 +182,14 @@ export function AssetMap({
           count.className = 'relative text-sm leading-none font-semibold tabular-nums'
           count.textContent = String(properties.point_count)
           element.append(count)
-          element.addEventListener('click', () => map.easeTo({
+          element.addEventListener('click', () => {
+            dismissPreview()
+            map.easeTo({
             center: coordinates,
             zoom: clusters.getClusterExpansionZoom(properties.cluster_id),
             duration: 500,
-          }, programmaticMoveEvent))
+            }, programmaticMoveEvent)
+          })
           return new Marker({ element }).setLngLat(coordinates).addTo(map)
         }
 
@@ -186,12 +214,14 @@ export function AssetMap({
     }
     renderMarkers()
     map.on('moveend', renderMarkers)
+    map.on('movestart', dismissPreview)
     return () => {
       map.off('moveend', renderMarkers)
+      map.off('movestart', dismissPreview)
       markersRef.current.forEach((marker) => marker.remove())
       markersRef.current = []
     }
-  }, [clusters, onSelectAsset, selectedAssetId])
+  }, [clusters, onSelectAsset, selectedAssetId, dismissPreview, keepPreviewOpen, schedulePreviewClose])
 
   useEffect(() => {
     const map = mapRef.current
@@ -233,6 +263,39 @@ export function AssetMap({
   return (
     <div className="relative h-full min-h-[32rem] overflow-hidden rounded-lg lg:min-h-0">
       <div ref={containerRef} className="h-full w-full" aria-label="Asset map" />
+
+      <Popover open={Boolean(clusterPreview)} onOpenChange={(open) => { if (!open) dismissPreview() }}>
+        <PopoverContent
+          anchor={clusterPreview?.anchor}
+          side="top"
+          sideOffset={10}
+          className="w-56 gap-3"
+          initialFocus={false}
+          finalFocus={false}
+          onMouseEnter={keepPreviewOpen}
+          onMouseLeave={schedulePreviewClose}
+          onFocus={keepPreviewOpen}
+          onBlur={schedulePreviewClose}
+        >
+          {clusterPreview && <>
+            <PopoverHeader>
+              <PopoverTitle>{clusterPreview.total} assets</PopoverTitle>
+              <PopoverDescription className="text-xs">Click the cluster to zoom in.</PopoverDescription>
+            </PopoverHeader>
+            <dl className="space-y-2 border-t pt-3">
+              {(['ok', 'warning', 'critical'] as const).map((status) => (
+                <div key={status} className="flex items-center justify-between">
+                  <dt className="flex items-center gap-2 text-sm">
+                    <span className="size-2 rounded-full" style={{ backgroundColor: markerColors[status] }} />
+                    {assetStatusLabels[status]}
+                  </dt>
+                  <dd className="text-sm font-medium tabular-nums">{clusterPreview.counts[status]}</dd>
+                </div>
+              ))}
+            </dl>
+          </>}
+        </PopoverContent>
+      </Popover>
 
       <div className="absolute top-3 left-3 flex gap-2 rounded-lg border bg-background/95 px-3 py-2 text-xs shadow-sm backdrop-blur">
         {Object.entries(markerColors).map(([status, color]) => (
