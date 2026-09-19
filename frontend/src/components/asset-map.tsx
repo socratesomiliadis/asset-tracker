@@ -166,7 +166,7 @@ export function AssetMap({
   }
 
   return (
-    <div className="relative h-full min-h-[32rem] overflow-hidden rounded-lg">
+    <div className="relative h-full min-h-[32rem] overflow-hidden rounded-lg lg:min-h-0">
       <div ref={containerRef} className="h-full w-full" aria-label="Asset map" />
 
       <div className="absolute top-3 left-3 flex gap-2 rounded-lg border bg-background/95 px-3 py-2 text-xs shadow-sm backdrop-blur">

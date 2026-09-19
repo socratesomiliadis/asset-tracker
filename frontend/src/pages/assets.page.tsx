@@ -99,7 +99,7 @@ export function AssetsPage() {
 
       <main className="min-h-0 flex-1 p-4 lg:p-6">
         <div
-          className="grid h-full min-h-[42rem] gap-4 lg:grid-cols-[26rem_minmax(0,1fr)] 2xl:grid-cols-[26rem_minmax(0,1fr)_var(--details-width)] 2xl:transition-[grid-template-columns] 2xl:duration-300 2xl:ease-out"
+          className="grid h-full min-h-[42rem] gap-4 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[26rem_minmax(0,1fr)] 2xl:grid-cols-[26rem_minmax(0,1fr)_var(--details-width)] 2xl:transition-[grid-template-columns] 2xl:duration-300 2xl:ease-out"
           style={
             {
               '--details-width': selectedAsset ? '24rem' : '0rem',
@@ -107,7 +107,7 @@ export function AssetsPage() {
           }
         >
           <Card className="min-h-0 gap-0 py-0">
-            <CardHeader className="gap-4 border-b py-4">
+            <CardHeader className="shrink-0 gap-4 border-b py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Asset list</p>
@@ -127,7 +127,7 @@ export function AssetsPage() {
                 onStatusChange={changeStatus}
               />
             </CardHeader>
-            <CardContent className="min-h-0 flex-1 px-0">
+            <CardContent className="min-h-0 flex-1 overflow-hidden px-0">
               <AssetList
                 assets={assets}
                 selectedAssetId={selectedAssetId}
@@ -138,7 +138,7 @@ export function AssetsPage() {
                 onSelectAsset={selectAsset}
               />
             </CardContent>
-            <CardFooter className="justify-between bg-background py-3">
+            <CardFooter className="shrink-0 justify-between bg-background py-3">
               <span className="text-xs text-muted-foreground">
                 {firstVisible}–{lastVisible} of {total}
               </span>
@@ -170,7 +170,7 @@ export function AssetsPage() {
           </Card>
 
           <Card className="min-h-0 gap-0 py-0">
-            <CardHeader className="flex-row items-center justify-between border-b py-4">
+            <CardHeader className="shrink-0 flex-row items-center justify-between border-b py-4">
               <div>
                 <p className="font-medium">Asset map</p>
                 <p className="text-xs text-muted-foreground">Geographic overview</p>
