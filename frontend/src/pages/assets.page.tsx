@@ -99,10 +99,10 @@ export function AssetsPage() {
 
       <main className="min-h-0 flex-1 p-4 lg:p-6">
         <div
-          className="grid h-full min-h-[42rem] gap-4 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[26rem_minmax(0,1fr)] 2xl:grid-cols-[26rem_minmax(0,1fr)_var(--details-width)] 2xl:transition-[grid-template-columns] 2xl:duration-300 2xl:ease-out"
+          className="grid h-full min-h-[42rem] gap-4 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[26rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)_var(--details-width)] xl:transition-[grid-template-columns] xl:duration-300 xl:ease-out"
           style={
             {
-              '--details-width': selectedAsset ? '24rem' : '0rem',
+              '--details-width': selectedAsset ? '20rem' : '0rem',
             } as CSSProperties
           }
         >

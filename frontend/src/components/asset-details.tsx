@@ -13,7 +13,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 
-const wideLayoutQuery = '(min-width: 96rem)'
+const wideLayoutQuery = '(min-width: 80rem)'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -157,9 +157,10 @@ export function AssetDetails({
   return (
     <>
       <aside
+        aria-label="Asset details"
         aria-hidden={!isOpen}
         inert={!isOpen}
-        className={`relative hidden min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-[opacity,transform] duration-300 ease-out 2xl:flex ${
+        className={`relative hidden min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-[opacity,transform] duration-300 ease-out xl:flex ${
           isOpen
             ? 'translate-x-0 opacity-100'
             : 'pointer-events-none translate-x-4 opacity-0'
@@ -168,7 +169,7 @@ export function AssetDetails({
         {displayedAsset && (
           <>
             <CloseButton onClose={onClose} />
-            <div className="border-b p-4 pr-14">
+            <div className="shrink-0 border-b p-4 pr-14">
               <h2 className="text-lg font-medium [overflow-wrap:anywhere]">{displayedAsset.name}</h2>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 Asset details and maintenance information.
@@ -178,7 +179,7 @@ export function AssetDetails({
               <DetailsFields asset={displayedAsset} />
             </div>
             <DetailsActions
-              className="grid grid-cols-2 gap-2 border-t p-4"
+              className="grid shrink-0 grid-cols-2 gap-2 border-t p-4"
               onDelete={() => onDelete(displayedAsset)}
               onEdit={() => onEdit(displayedAsset)}
             />
