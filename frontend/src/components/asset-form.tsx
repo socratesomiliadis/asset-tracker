@@ -214,6 +214,18 @@ export function AssetForm(props: AssetFormProps) {
           </Field>
         </div>
 
+        <Field>
+          <FieldLabel>Choose location</FieldLabel>
+          <FieldDescription>
+            Click the map or enter latitude and longitude below. Both methods update the same location.
+          </FieldDescription>
+          <AssetLocationPicker
+            latitude={Number.isFinite(latitude) ? latitude : undefined}
+            longitude={Number.isFinite(longitude) ? longitude : undefined}
+            onLocationChange={setLocation}
+          />
+        </Field>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field data-invalid={Boolean(errors.lat)}>
             <FieldLabel htmlFor={`${formId}-latitude`}>Latitude</FieldLabel>
@@ -249,18 +261,6 @@ export function AssetForm(props: AssetFormProps) {
             </FieldError>
           </Field>
         </div>
-
-        <Field>
-          <FieldLabel>Choose location</FieldLabel>
-          <FieldDescription>
-            Click the map to set or reposition the asset coordinates.
-          </FieldDescription>
-          <AssetLocationPicker
-            latitude={Number.isFinite(latitude) ? latitude : undefined}
-            longitude={Number.isFinite(longitude) ? longitude : undefined}
-            onLocationChange={setLocation}
-          />
-        </Field>
 
         <Field data-invalid={Boolean(errors.notes)}>
           <div className="flex items-center gap-1.5">
