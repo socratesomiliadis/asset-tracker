@@ -11,7 +11,6 @@ import { DeleteAssetDialog } from '@/components/delete-asset-dialog'
 import { EditAssetDrawer } from '@/components/edit-asset-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { useAssets, useMapAssets } from '@/hooks/use-assets'
 
 type TypeFilter = AssetType | 'all'
@@ -178,17 +177,16 @@ export function AssetsPage() {
           </Card>
 
           <Card className="min-h-0 gap-0 py-0">
-            <CardHeader className="shrink-0 flex-row items-center justify-between border-b py-4">
-              <div>
-                <p className="font-medium">Asset map</p>
-                <p className="text-xs text-muted-foreground">Geographic overview</p>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="size-2 rounded-full bg-emerald-500" />
-                {mapQuery.isError ? 'Unavailable' : mapQuery.isFetching ? 'Updating…' : 'Live data'}
-              </div>
+            <CardHeader className="flex shrink-0 items-center justify-between gap-3 border-b py-4 [.border-b]:pb-4">
+              <p className="font-medium">Asset map</p>
+              {!mapQuery.isSuccess || mapQuery.isFetching ? (
+                <p role="status" className="text-xs text-muted-foreground">
+                  {mapQuery.isFetching
+                    ? mapQuery.data ? 'Refreshing…' : 'Loading…'
+                    : mapQuery.isError ? 'Unable to load' : 'Waiting to load…'}
+                </p>
+              ) : null}
             </CardHeader>
-            <Separator />
             <CardContent className="min-h-0 flex-1 p-3">
               <AssetMap
                 assets={mapAssets}
