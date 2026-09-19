@@ -1,25 +1,34 @@
 import { useQuery } from '@tanstack/react-query'
-import type { Asset } from '@asset-tracker/shared'
-import { getAssets, type AssetFilterParams, type GetAssetsParams } from '@/lib/assets-api'
+import type { MapAsset } from '@asset-tracker/shared'
+import { getAssets, getMapAssets, getAsset, type AssetFilterParams, type GetAssetsParams } from '@/lib/assets-api'
 
 export const assetQueryKeys = {
   all: ['assets'] as const,
   list: (params: GetAssetsParams) => [...assetQueryKeys.all, 'list', params] as const,
   map: (params: AssetFilterParams) => [...assetQueryKeys.all, 'map', params] as const,
+  detail: (id: string | undefined) => [...assetQueryKeys.all, 'detail', id] as const,
+}
+
+export function useAsset(id: string | undefined) {
+  return useQuery({
+    queryKey: assetQueryKeys.detail(id),
+    queryFn: ({ signal }) => getAsset(id!, signal),
+    enabled: Boolean(id),
+  })
 }
 
 export function useMapAssets(filters: AssetFilterParams) {
   return useQuery({
     queryKey: assetQueryKeys.map(filters),
     queryFn: async ({ signal }) => {
-      const assets: Asset[] = []
+      const assets = new Map<string, MapAsset>()
       let offset = 0
       // Fetch all matches while respecting the API's maximum page size.
       while (true) {
-        const page = await getAssets({ ...filters, limit: 100, offset }, signal)
-        assets.push(...page.data)
+        const page = await getMapAssets({ ...filters, limit: 100, offset }, signal)
+        for (const asset of page.data) assets.set(asset.id, asset)
         offset += page.data.length
-        if (offset >= page.meta.total || page.data.length === 0) return assets
+        if (offset >= page.meta.total || page.data.length === 0) return [...assets.values()]
       }
     },
   })
@@ -28,6 +37,6 @@ export function useMapAssets(filters: AssetFilterParams) {
 export function useAssets(params: GetAssetsParams) {
   return useQuery({
     queryKey: assetQueryKeys.list(params),
-    queryFn: () => getAssets(params),
+    queryFn: ({ signal }) => getAssets(params, signal),
   })
 }

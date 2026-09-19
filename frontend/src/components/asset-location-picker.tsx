@@ -1,3 +1,4 @@
+import '@/lib/map-runtime'
 import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
 import { Map, Marker, NavigationControl } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'

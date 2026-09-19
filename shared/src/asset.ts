@@ -12,7 +12,19 @@ export const assetIdSchema = z.string().uuid()
 export const isoDateSchema = z.union([
   z.iso.date(),
   z.iso.datetime({ offset: true }),
-])
+]).refine((value) => {
+  const date = new Date(value)
+  const year = date.getUTCFullYear()
+  const offset = value.match(/([+-])(\d{2}):(\d{2})$/)
+  const offsetMinutes = offset ? Number(offset[2]) * 60 + Number(offset[3]) : 0
+  return Number(value.slice(0, 4)) >= 1 && Number.isFinite(date.getTime()) &&
+    year >= 1 && year <= 9999 && offsetMinutes <= 14 * 60
+}, 'Use a date in years 0001–9999 and a timezone offset within ±14:00.')
+
+// Date-only API values always mean midnight UTC, independent of the DB timezone.
+export function toUtcTimestamp(value: string): string {
+  return new Date(value).toISOString()
+}
 
 export const assetSchema = z
   .object({
@@ -28,7 +40,7 @@ export const assetSchema = z
   })
   .strict()
 
-export const INSPECTION_DATE_ERROR = 'Inspection date must be on or after the installation date.'
+export const INSPECTION_DATE_ERROR = 'Inspection must be at or after the installation date and time (UTC).'
 
 function inspectionDatesInOrder(value: {
   installed_at?: string
@@ -66,12 +78,12 @@ export const assetFiltersSchema = z
   .strict()
 
 const latitudeQuerySchema = z.preprocess(
-  (value) => (value === '' ? Number.NaN : value),
+  (value) => (typeof value === 'string' && value.trim() === '' ? Number.NaN : value),
   z.coerce.number().min(-90).max(90),
 )
 
 const longitudeQuerySchema = z.preprocess(
-  (value) => (value === '' ? Number.NaN : value),
+  (value) => (typeof value === 'string' && value.trim() === '' ? Number.NaN : value),
   z.coerce.number(),
 )
 
@@ -97,6 +109,13 @@ export const assetQueryParamsSchema = assetFiltersSchema
   })
   .strict()
   .superRefine((value, context) => {
+    for (const [from, to] of [
+      ['installed_from', 'installed_to'], ['inspected_from', 'inspected_to'],
+    ] as const) {
+      if (value[from] && value[to] && Date.parse(value[from]) > Date.parse(value[to])) {
+        context.addIssue({ code: 'custom', message: `${from} must be at or before ${to}`, path: [from] })
+      }
+    }
     const bounds = [value.minLat, value.maxLat, value.minLng, value.maxLng]
     const providedBounds = bounds.filter((bound) => bound !== undefined).length
 
@@ -129,6 +148,7 @@ export const assetQueryParamsSchema = assetFiltersSchema
 export type AssetType = z.infer<typeof assetTypeSchema>
 export type AssetStatus = z.infer<typeof assetStatusSchema>
 export type Asset = z.infer<typeof assetSchema>
+export type MapAsset = Pick<Asset, 'id' | 'name' | 'type' | 'status' | 'lat' | 'lng'>
 export type CreateAssetInput = z.infer<typeof createAssetInputSchema>
 export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>
 export type AssetFilters = z.infer<typeof assetFiltersSchema>
@@ -138,6 +158,7 @@ export type AssetPage = {
   data: Asset[]
   meta: { total: number; limit: number; offset: number }
 }
+export type MapAssetPage = Omit<AssetPage, 'data'> & { data: MapAsset[] }
 
 export const DEFAULT_ASSET_LIMIT = 50
 export const DEFAULT_ASSET_OFFSET = 0

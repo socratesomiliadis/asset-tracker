@@ -20,8 +20,8 @@ function parseAssetId(value: unknown): string {
 
 export const assetRouter = Router()
 
-assetRouter.get('/', async (request, response) => {
-  const parsed = assetQueryParamsSchema.safeParse(request.query)
+function parseListQuery(value: unknown) {
+  const parsed = assetQueryParamsSchema.safeParse(value)
 
   if (!parsed.success) {
     throw new ApiError(
@@ -32,11 +32,21 @@ assetRouter.get('/', async (request, response) => {
     )
   }
 
-  const query = {
+  return {
     ...parsed.data,
     limit: parsed.data.limit ?? DEFAULT_ASSET_LIMIT,
     offset: parsed.data.offset ?? DEFAULT_ASSET_OFFSET,
   }
+}
+
+assetRouter.get('/map', async (request, response) => {
+  const query = parseListQuery(request.query)
+  const result = await assetService.findMapPoints(query)
+  response.json({ data: result.data, meta: { total: result.total, limit: query.limit, offset: query.offset } })
+})
+
+assetRouter.get('/', async (request, response) => {
+  const query = parseListQuery(request.query)
   const result = await assetService.findMany(query)
 
   response.json({

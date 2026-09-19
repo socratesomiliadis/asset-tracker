@@ -6,6 +6,7 @@ import {
   updateAssetInputSchema,
   INSPECTION_DATE_ERROR,
   normalizeLongitudeBounds,
+  isoDateSchema,
 } from './asset.js'
 
 const asset = {
@@ -21,6 +22,18 @@ const asset = {
 } as const
 
 describe('asset schemas', () => {
+  it.each(['0000-01-01', '0001-01-01T00:00:00+14:00', '9999-12-31T23:59:59-14:00',
+    '2026-01-01T12:00:00+23:59', '2026-01-01T12:00:00+14:01'])('rejects unsupported date %s', (value) => {
+    expect(isoDateSchema.safeParse(value).success).toBe(false)
+  })
+  it.each(['0001-01-01', '9999-12-31', '2026-01-01T12:00:00+14:00', '2026-01-01T12:00:00-14:00'])('accepts supported date %s', (value) => {
+    expect(isoDateSchema.safeParse(value).success).toBe(true)
+  })
+  it('rejects reversed date filters and whitespace-only coordinates', () => {
+    expect(assetQueryParamsSchema.safeParse({ installed_from: '2026-01-02', installed_to: '2026-01-01' }).success).toBe(false)
+    expect(assetQueryParamsSchema.safeParse({ inspected_from: '2026-01-02', inspected_to: '2026-01-01' }).success).toBe(false)
+    expect(assetQueryParamsSchema.safeParse({ minLat: ' ', maxLat: 40, minLng: -80, maxLng: -70 }).success).toBe(false)
+  })
   it.each([
     [-75, -70, -75, -70],
     [170, 190, 170, -170],

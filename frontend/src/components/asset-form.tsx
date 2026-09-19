@@ -17,7 +17,8 @@ import {
 import { useCallback, useEffect, useId } from 'react'
 import { z } from 'zod'
 import { AssetsApiError } from '@/lib/assets-api'
-import { AssetLocationPicker } from '@/components/asset-location-picker'
+import { LazyAssetLocationPicker } from '@/components/lazy-maps'
+import { toUtcInput, fromUtcInput } from '@/lib/asset-dates'
 import { Button } from '@/components/ui/button'
 import {
   Field,
@@ -53,10 +54,6 @@ type AssetFormProps = SharedAssetFormProps &
       }
   )
 
-function toDateInputValue(value?: string | null) {
-  return value ? value.slice(0, 10) : value
-}
-
 export function AssetForm(props: AssetFormProps) {
   const formId = useId()
   const validationSchema =
@@ -65,9 +62,9 @@ export function AssetForm(props: AssetFormProps) {
     name: props.initialValues?.name ?? '',
     type: props.initialValues?.type ?? 'pipe',
     status: props.initialValues?.status ?? 'ok',
-    installed_at: toDateInputValue(props.initialValues?.installed_at) ?? '',
+    installed_at: toUtcInput(props.initialValues?.installed_at) ?? '',
     last_inspected_at:
-      toDateInputValue(props.initialValues?.last_inspected_at) ?? null,
+      toUtcInput(props.initialValues?.last_inspected_at) ?? null,
     notes: props.initialValues?.notes ?? '',
     lat: props.initialValues?.lat,
     lng: props.initialValues?.lng,
@@ -83,7 +80,11 @@ export function AssetForm(props: AssetFormProps) {
     defaultValues,
     mode: 'onBlur',
     resolver: (values, context, options) => {
-      const effectiveValues = { ...values }
+      const effectiveValues = {
+        ...values,
+        installed_at: fromUtcInput(values.installed_at),
+        last_inspected_at: values.last_inspected_at ? fromUtcInput(values.last_inspected_at) : null,
+      }
       if (props.mode === 'edit') {
         if (values.installed_at === defaultValues.installed_at && props.initialValues.installed_at !== undefined) {
           effectiveValues.installed_at = props.initialValues.installed_at
@@ -176,29 +177,36 @@ export function AssetForm(props: AssetFormProps) {
           />
         </div>
 
+        <FieldDescription>Dates and times are shown and entered in UTC.</FieldDescription>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field data-invalid={Boolean(errors.installed_at)}>
-            <FieldLabel htmlFor={`${formId}-installed-at`}>Installed date</FieldLabel>
+            <FieldLabel htmlFor={`${formId}-installed-at`}>Installed (UTC)</FieldLabel>
             <Input
               id={`${formId}-installed-at`}
-              type="date"
+              type="datetime-local"
+              step="0.001"
+              min="0001-01-01T00:00"
+              max="9999-12-31T23:59:59.999"
               aria-invalid={Boolean(errors.installed_at)}
               {...register('installed_at')}
             />
             <FieldError>
-              {errors.installed_at ? 'Enter a valid installed date.' : null}
+              {errors.installed_at ? 'Enter a valid installation date and time (UTC).' : null}
             </FieldError>
           </Field>
 
           <Field data-invalid={Boolean(errors.last_inspected_at)}>
             <div className="flex items-center gap-1.5">
-              <FieldLabel htmlFor={`${formId}-last-inspected-at`}>Last inspected date</FieldLabel>
+              <FieldLabel htmlFor={`${formId}-last-inspected-at`}>Last inspected (UTC)</FieldLabel>
               <span id={`${formId}-inspection-optional`} className="text-sm text-muted-foreground">(optional)</span>
             </div>
             <Input
               id={`${formId}-last-inspected-at`}
               aria-describedby={`${formId}-inspection-optional`}
-              type="date"
+              type="datetime-local"
+              step="0.001"
+              min="0001-01-01T00:00"
+              max="9999-12-31T23:59:59.999"
               aria-invalid={Boolean(errors.last_inspected_at)}
               {...register('last_inspected_at', {
                 setValueAs: (value) => (value === '' ? null : value),
@@ -208,7 +216,7 @@ export function AssetForm(props: AssetFormProps) {
               {errors.last_inspected_at
                 ? errors.last_inspected_at.message === INSPECTION_DATE_ERROR
                   ? INSPECTION_DATE_ERROR
-                  : 'Enter a valid inspection date or leave it blank.'
+                  : 'Enter a valid inspection date and time (UTC), or leave it blank.'
                 : null}
             </FieldError>
           </Field>
@@ -219,7 +227,7 @@ export function AssetForm(props: AssetFormProps) {
           <FieldDescription>
             Click the map or enter latitude and longitude below. Both methods update the same location.
           </FieldDescription>
-          <AssetLocationPicker
+          <LazyAssetLocationPicker
             latitude={Number.isFinite(latitude) ? latitude : undefined}
             longitude={Number.isFinite(longitude) ? longitude : undefined}
             onLocationChange={setLocation}

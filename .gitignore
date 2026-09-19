@@ -6,3 +6,5 @@ coverage/
 *.local
 *.log
 frontend/.vite/
+test-results/
+playwright-report/

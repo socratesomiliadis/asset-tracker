@@ -24,9 +24,11 @@
     "db:seed": "pnpm --filter @asset-tracker/shared build && pnpm --filter backend db:seed",
     "db:push": "pnpm --filter backend db:push",
     "db:check": "pnpm --filter backend db:check",
-    "db:studio": "pnpm --filter backend db:studio"
+    "db:studio": "pnpm --filter backend db:studio",
+    "test:e2e": "pnpm --filter @asset-tracker/shared build && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^10.0.5"
   }
 }

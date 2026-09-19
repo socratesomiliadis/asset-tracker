@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { AssetDetails } from '@/components/asset-details'
-import { AssetMap, type AssetMapBounds } from '@/components/asset-map'
+import type { AssetMapBounds } from '@/components/asset-map'
+import { LazyAssetMap } from '@/components/lazy-maps'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
 import { CreateAssetDrawer } from '@/components/create-asset-drawer'
@@ -11,7 +12,8 @@ import { DeleteAssetDialog } from '@/components/delete-asset-dialog'
 import { EditAssetDrawer } from '@/components/edit-asset-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { useAssets, useMapAssets } from '@/hooks/use-assets'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAsset, assetQueryKeys, useAssets, useMapAssets } from '@/hooks/use-assets'
 
 type TypeFilter = AssetType | 'all'
 type StatusFilter = AssetStatus | 'all'
@@ -20,6 +22,7 @@ const PAGE_SIZE = 25
 const EMPTY_ASSETS: Asset[] = []
 
 export function AssetsPage() {
+  const queryClient = useQueryClient()
   const [type, setType] = useState<TypeFilter>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [selectedAssetId, setSelectedAssetId] = useState<string>()
@@ -37,8 +40,9 @@ export function AssetsPage() {
   const mapQuery = useMapAssets(filters)
   const assets = assetsQuery.isError ? EMPTY_ASSETS : assetsQuery.data?.data ?? EMPTY_ASSETS
   const mapAssets = mapQuery.isError ? EMPTY_ASSETS : mapQuery.data ?? EMPTY_ASSETS
-  const selectedAsset = mapAssets.find((asset) => asset.id === selectedAssetId)
-    ?? assets.find((asset) => asset.id === selectedAssetId)
+  const listedAsset = assets.find((asset) => asset.id === selectedAssetId)
+  const detailQuery = useAsset(listedAsset ? undefined : selectedAssetId)
+  const selectedAsset = listedAsset ?? detailQuery.data
   const selectAsset = useCallback((assetId: string) => setSelectedAssetId(assetId), [])
   const searchMapArea = useCallback((bounds: AssetMapBounds) => {
     setMapBounds(bounds)
@@ -53,7 +57,7 @@ export function AssetsPage() {
   }
   if (mapQuery.isSuccess && !mapQuery.isFetching &&
       assetsQuery.isSuccess && !assetsQuery.isFetching &&
-      selectedAssetId && !selectedAsset) {
+      selectedAssetId && !listedAsset && !mapAssets.some((asset) => asset.id === selectedAssetId)) {
     setSelectedAssetId(undefined)
   }
 
@@ -100,6 +104,14 @@ export function AssetsPage() {
           </Button>
         </div>
       </header>
+
+      {selectedAssetId && !selectedAsset && (
+        <div role={detailQuery.isError ? 'alert' : 'status'} className="rounded-xl border bg-background p-4 text-sm">
+          {detailQuery.isError ? detailQuery.error.message : 'Loading asset details…'}
+          {detailQuery.isError && <Button variant="outline" className="mt-2" onClick={() => void detailQuery.refetch()}>Retry details</Button>}
+          <Button variant="ghost" onClick={() => setSelectedAssetId(undefined)}>Close details</Button>
+        </div>
+      )}
 
       <main className="min-h-0 flex-1 p-4 lg:p-6">
         <div
@@ -188,7 +200,7 @@ export function AssetsPage() {
               ) : null}
             </CardHeader>
             <CardContent className="min-h-0 flex-1 p-3">
-              <AssetMap
+              <LazyAssetMap
                 assets={mapAssets}
                 selectedAssetId={selectedAssetId}
                 hasActiveAreaSearch={Boolean(mapBounds)}
@@ -216,8 +228,12 @@ export function AssetsPage() {
       <CreateAssetDrawer
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        onCreated={() => {
+        onCreated={(asset) => {
           clearAllFilters()
+          queryClient.setQueryData(assetQueryKeys.detail(asset.id), asset)
+          // Refresh the unfiltered map too, even when creation happened under filters.
+          void queryClient.invalidateQueries({ queryKey: assetQueryKeys.map({}) })
+          setSelectedAssetId(asset.id)
           setIsCreateOpen(false)
         }}
       />
@@ -228,6 +244,7 @@ export function AssetsPage() {
           setSelectedAssetId(editingAsset?.id)
         }}
         onUpdated={(asset) => {
+          queryClient.setQueryData(assetQueryKeys.detail(asset.id), asset)
           setEditingAsset(undefined)
           setSelectedAssetId(
             [...mapAssets, ...assets].some((item) => item.id === asset.id) ? asset.id : undefined,

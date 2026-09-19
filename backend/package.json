@@ -15,7 +15,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:push": "drizzle-kit push",
     "db:check": "drizzle-kit check",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint": "oxlint src"
   },
   "dependencies": {
     "@asset-tracker/shared": "workspace:*",
@@ -32,6 +33,7 @@
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
     "drizzle-kit": "^0.31.10",
+    "oxlint": "^1.83.0",
     "supertest": "^7.2.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",

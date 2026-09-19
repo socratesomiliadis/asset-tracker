@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { assetSchema, createAssetInputSchema } from '@asset-tracker/shared'
+import { assetSchema, createAssetInputSchema, toUtcTimestamp } from '@asset-tracker/shared'
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from './index.js'
@@ -20,6 +20,8 @@ export async function initializeAssets() {
       const contents = await readFile(new URL('../../../seed.json', import.meta.url), 'utf8')
       const seedAssets = z.array(assetSchema).parse(JSON.parse(contents)).map(({ id, ...input }) => ({
         id, ...createAssetInputSchema.parse(input),
+        installed_at: toUtcTimestamp(input.installed_at),
+        last_inspected_at: input.last_inspected_at === null ? null : toUtcTimestamp(input.last_inspected_at),
       }))
       if (seedAssets.length > 0) await transaction.insert(assets).values(seedAssets)
     }

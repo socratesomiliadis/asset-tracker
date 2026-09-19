@@ -1,3 +1,4 @@
+import { formatAssetDate } from '@/lib/asset-dates'
 import { assetTypeLabels } from '@/lib/asset-labels'
 import { AssetStatusBadge } from '@/components/asset-status-badge'
 import type { Asset } from '@asset-tracker/shared'
@@ -15,15 +16,6 @@ import {
 } from '@/components/ui/drawer'
 
 const wideLayoutQuery = '(min-width: 80rem)'
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-})
-
-function formatDate(value: string) {
-  const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
-  return dateFormatter.format(date)
-}
 
 type AssetDetailsProps = {
   asset?: Asset
@@ -67,7 +59,7 @@ function DetailsFields({ asset }: { asset: Asset }) {
           <CalendarDays className="size-4" aria-hidden="true" />
           Installed
         </dt>
-        <dd className="mt-1.5 text-sm">{formatDate(asset.installed_at)}</dd>
+        <dd className="mt-1.5 text-sm">{formatAssetDate(asset.installed_at)}</dd>
       </div>
 
       <div>
@@ -77,7 +69,7 @@ function DetailsFields({ asset }: { asset: Asset }) {
         </dt>
         <dd className="mt-1.5 text-sm">
           {asset.last_inspected_at
-            ? formatDate(asset.last_inspected_at)
+            ? formatAssetDate(asset.last_inspected_at)
             : 'Not yet inspected'}
         </dd>
       </div>

@@ -1,3 +1,4 @@
+vi.mock('@/lib/map-runtime', () => ({}))
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { AssetLocationPicker } from './asset-location-picker'

@@ -1,3 +1,4 @@
+vi.mock('@/lib/map-runtime', () => ({}))
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AssetMap } from './asset-map'
@@ -31,7 +32,7 @@ vi.mock('maplibre-gl', () => ({
   Popup: class { setText() { return this } },
 }))
 
-beforeEach(() => { map.zoom = 3; vi.stubGlobal('ResizeObserver', class { observe() {}; disconnect() {} }) })
+beforeEach(() => { map.west = -180; map.east = 180; map.zoom = 3; vi.stubGlobal('ResizeObserver', class { observe() {}; disconnect() {} }) })
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals() })
 
@@ -63,6 +64,24 @@ const assets = ['ok', 'warning', 'critical'].map((status, index) => ({
 }))
 const props = { hasActiveAreaSearch: true, isLoading: false, isError: false,
   onRetry: vi.fn(), onSearchArea: vi.fn() }
+
+it('offers area search after cluster navigation while ignoring automatic camera moves', () => {
+  render(<AssetMap {...props} assets={assets} onSelectAsset={vi.fn()} />)
+  const move = map.on.mock.calls.find(([event]) => event === 'moveend')![1]
+  act(() => move({ isProgrammaticMove: true }))
+  expect(screen.queryByRole('button', { name: 'Search this area' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /^Expand cluster:/ }))
+  const [, event] = map.easeTo.mock.lastCall!
+  act(() => move(event ?? {}))
+  expect(screen.getByRole('button', { name: 'Search this area' })).toBeTruthy()
+})
+
+it('renders only markers within the visible geographic bounds', () => {
+  map.west = 10
+  map.east = 20
+  render(<AssetMap {...props} assets={assets} onSelectAsset={vi.fn()} />)
+  expect(screen.queryByRole('button', { name: /Expand cluster|Select Asset/ })).toBeNull()
+})
 
 it('keeps empty maps unobstructed while retaining distinct API failure and retry feedback', () => {
   const onRetry = vi.fn()
@@ -96,7 +115,7 @@ it('shows a shadcn status popover on hover and focus without interfering with ex
   await screen.findByRole('dialog', { name: '3 assets' })
   fireEvent.click(cluster)
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-  expect(map.easeTo).toHaveBeenCalledWith(expect.objectContaining({ zoom: expect.any(Number) }), { isProgrammaticMove: true })
+  expect(map.easeTo).toHaveBeenCalledWith(expect.objectContaining({ zoom: expect.any(Number) }))
 })
 
 it('counts mixed statuses and expands a cluster into selectable status-colored markers', () => {
@@ -114,7 +133,7 @@ it('counts mixed statuses and expands a cluster into selectable status-colored m
   expect(onSelectAsset).not.toHaveBeenCalled()
   const [camera, event] = map.easeTo.mock.lastCall!
   expect(camera.zoom).toBeGreaterThan(3)
-  expect(event).toEqual({ isProgrammaticMove: true })
+  expect(event).toBeUndefined()
   zoomTo(camera.zoom)
   expect(screen.queryByRole('button', { name: 'Expand cluster: 3 assets; 1 OK; 1 Warning; 1 Critical' })).toBeNull()
   expect(screen.getByRole('button', { name: 'Select Asset 2' })).toBeTruthy()

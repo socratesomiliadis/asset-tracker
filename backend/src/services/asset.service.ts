@@ -9,6 +9,13 @@ import { createAssetInputSchema } from '@asset-tracker/shared'
 import { ApiError } from '../errors/api.error.js'
 
 export class AssetService {
+  async findMapPoints(params: AssetQueryParams) {
+    const [data, total] = await Promise.all([
+      assetRepository.findMapPoints(params), assetRepository.count(params),
+    ])
+    return { data, total }
+  }
+
   async findMany(params: AssetQueryParams): Promise<{
     data: Asset[]
     total: number

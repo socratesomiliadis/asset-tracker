@@ -1,7 +1,8 @@
-import { DEFAULT_ASSET_LIMIT, DEFAULT_ASSET_OFFSET } from '@asset-tracker/shared'
+import { DEFAULT_ASSET_LIMIT, DEFAULT_ASSET_OFFSET, toUtcTimestamp } from '@asset-tracker/shared'
 import { randomUUID } from 'node:crypto'
 import type {
   Asset,
+  MapAsset,
   AssetQueryParams,
   CreateAssetInput,
   UpdateAssetInput,
@@ -31,6 +32,16 @@ function toAsset(row: AssetRow): Asset {
   }
 }
 
+function storedValues<T extends UpdateAssetInput>(input: T): T {
+  return {
+    ...input,
+    ...(input.installed_at === undefined ? {} : { installed_at: toUtcTimestamp(input.installed_at) }),
+    ...(input.last_inspected_at === undefined ? {} : {
+      last_inspected_at: input.last_inspected_at === null ? null : toUtcTimestamp(input.last_inspected_at),
+    }),
+  }
+}
+
 function getConditions(params: AssetQueryParams) {
   return [
     params.type ? eq(assets.type, params.type) : undefined,
@@ -42,14 +53,14 @@ function getConditions(params: AssetQueryParams) {
         )
       : undefined,
     params.installed_from
-      ? gte(assets.installed_at, params.installed_from)
+      ? gte(assets.installed_at, toUtcTimestamp(params.installed_from))
       : undefined,
-    params.installed_to ? lte(assets.installed_at, params.installed_to) : undefined,
+    params.installed_to ? lte(assets.installed_at, toUtcTimestamp(params.installed_to)) : undefined,
     params.inspected_from
-      ? gte(assets.last_inspected_at, params.inspected_from)
+      ? gte(assets.last_inspected_at, toUtcTimestamp(params.inspected_from))
       : undefined,
     params.inspected_to
-      ? lte(assets.last_inspected_at, params.inspected_to)
+      ? lte(assets.last_inspected_at, toUtcTimestamp(params.inspected_to))
       : undefined,
     params.minLat !== undefined ? gte(assets.lat, params.minLat) : undefined,
     params.maxLat !== undefined ? lte(assets.lat, params.maxLat) : undefined,
@@ -57,25 +68,39 @@ function getConditions(params: AssetQueryParams) {
   ]
 }
 
-export class AssetRepository {
-  async findMany(params: AssetQueryParams = {}): Promise<Asset[]> {
-    const sortColumns = {
-      name: assets.name,
-      type: assets.type,
-      status: assets.status,
-      installed_at: assets.installed_at,
-      last_inspected_at: assets.last_inspected_at,
-    }
-    const sortColumn = params.sort_by
-      ? sortColumns[params.sort_by]
-      : assets.installed_at
-    const sortDirection = params.sort_order === 'asc' ? asc : desc
+function getOrdering(params: AssetQueryParams) {
+  const sortColumns = {
+    name: assets.name,
+    type: assets.type,
+    status: assets.status,
+    installed_at: assets.installed_at,
+    last_inspected_at: assets.last_inspected_at,
+  }
+  const sortColumn = params.sort_by
+    ? sortColumns[params.sort_by]
+    : assets.installed_at
+  const sortDirection = params.sort_order === 'asc' ? asc : desc
 
+  return [sortDirection(sortColumn), asc(assets.id)]
+}
+
+export class AssetRepository {
+  async findMapPoints(params: AssetQueryParams): Promise<MapAsset[]> {
+    return db.select({
+      id: assets.id, name: assets.name, type: assets.type, status: assets.status,
+      lat: assets.lat, lng: assets.lng,
+    }).from(assets).where(and(...getConditions(params)))
+      .orderBy(...getOrdering(params))
+      .limit(params.limit ?? DEFAULT_ASSET_LIMIT)
+      .offset(params.offset ?? DEFAULT_ASSET_OFFSET)
+  }
+
+  async findMany(params: AssetQueryParams = {}): Promise<Asset[]> {
     const rows = await db
       .select()
       .from(assets)
       .where(and(...getConditions(params)))
-      .orderBy(sortDirection(sortColumn), asc(assets.id))
+      .orderBy(...getOrdering(params))
       .limit(params.limit ?? DEFAULT_ASSET_LIMIT)
       .offset(params.offset ?? DEFAULT_ASSET_OFFSET)
 
@@ -99,7 +124,7 @@ export class AssetRepository {
   async create(input: CreateAssetInput): Promise<Asset> {
     const [row] = await db
       .insert(assets)
-      .values({ ...input, id: randomUUID() })
+      .values({ ...storedValues(input), id: randomUUID() })
       .returning()
 
     if (!row) {
@@ -112,7 +137,7 @@ export class AssetRepository {
   async update(id: string, input: UpdateAssetInput): Promise<Asset | null> {
     const [row] = await db
       .update(assets)
-      .set(input)
+      .set(storedValues(input))
       .where(eq(assets.id, id))
       .returning()
 

@@ -1,6 +1,7 @@
 import type {
   Asset,
   AssetPage,
+  MapAssetPage,
   AssetQueryParams,
   CreateAssetInput,
   UpdateAssetInput,
@@ -71,7 +72,7 @@ function jsonBody(method: 'POST' | 'PATCH', input: CreateAssetInput | UpdateAsse
   }
 }
 
-export async function getAssets(params: GetAssetsParams, signal?: AbortSignal): Promise<AssetPage> {
+function assetQueryString(params: GetAssetsParams) {
   const query = new URLSearchParams({
     limit: String(params.limit),
     offset: String(params.offset),
@@ -84,8 +85,22 @@ export async function getAssets(params: GetAssetsParams, signal?: AbortSignal): 
   if (params.minLng !== undefined) query.set('minLng', String(params.minLng))
   if (params.maxLng !== undefined) query.set('maxLng', String(params.maxLng))
 
-  const response = await requestAssets(`?${query}`, 'Failed to load assets', { signal })
+  return query.toString()
+}
+
+export async function getAssets(params: GetAssetsParams, signal?: AbortSignal): Promise<AssetPage> {
+  const response = await requestAssets(`?${assetQueryString(params)}`, 'Failed to load assets', { signal })
   return response.json() as Promise<AssetPage>
+}
+
+export async function getMapAssets(params: GetAssetsParams, signal?: AbortSignal): Promise<MapAssetPage> {
+  const response = await requestAssets(`/map?${assetQueryString(params)}`, 'Failed to load map assets', { signal })
+  return response.json() as Promise<MapAssetPage>
+}
+
+export async function getAsset(id: string, signal?: AbortSignal): Promise<Asset> {
+  const response = await requestAssets(`/${id}`, 'Failed to load asset details', { signal })
+  return response.json() as Promise<Asset>
 }
 
 export async function createAsset(input: CreateAssetInput): Promise<Asset> {
