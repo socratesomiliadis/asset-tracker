@@ -1,3 +1,4 @@
+import { ASSET_TYPES, ASSET_STATUSES } from '@asset-tracker/shared'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -10,18 +11,9 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 
-export const assetTypeEnum = pgEnum('asset_type', [
-  'pipe',
-  'hydrant',
-  'sensor',
-  'valve',
-])
+export const assetTypeEnum = pgEnum('asset_type', ASSET_TYPES)
 
-export const assetStatusEnum = pgEnum('asset_status', [
-  'ok',
-  'warning',
-  'critical',
-])
+export const assetStatusEnum = pgEnum('asset_status', ASSET_STATUSES)
 
 export const assets = pgTable(
   'assets',
@@ -56,4 +48,3 @@ export const assets = pgTable(
 )
 
 export type AssetRow = typeof assets.$inferSelect
-export type NewAssetRow = typeof assets.$inferInsert

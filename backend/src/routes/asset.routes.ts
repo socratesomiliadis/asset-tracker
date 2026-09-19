@@ -1,4 +1,6 @@
+import { DEFAULT_ASSET_LIMIT, DEFAULT_ASSET_OFFSET } from '@asset-tracker/shared'
 import {
+  type AssetPage,
   assetIdSchema,
   assetQueryParamsSchema,
   createAssetInputSchema,
@@ -8,8 +10,13 @@ import { Router } from 'express'
 import { ApiError } from '../errors/api.error.js'
 import { assetService } from '../services/asset.service.js'
 
-const DEFAULT_LIMIT = 50
-const DEFAULT_OFFSET = 0
+function parseAssetId(value: unknown): string {
+  const result = assetIdSchema.safeParse(value)
+  if (!result.success) {
+    throw new ApiError(400, 'INVALID_ASSET_ID', 'Invalid asset ID')
+  }
+  return result.data
+}
 
 export const assetRouter = Router()
 
@@ -27,8 +34,8 @@ assetRouter.get('/', async (request, response) => {
 
   const query = {
     ...parsed.data,
-    limit: parsed.data.limit ?? DEFAULT_LIMIT,
-    offset: parsed.data.offset ?? DEFAULT_OFFSET,
+    limit: parsed.data.limit ?? DEFAULT_ASSET_LIMIT,
+    offset: parsed.data.offset ?? DEFAULT_ASSET_OFFSET,
   }
   const result = await assetService.findMany(query)
 
@@ -39,17 +46,13 @@ assetRouter.get('/', async (request, response) => {
       limit: query.limit,
       offset: query.offset,
     },
-  })
+  } satisfies AssetPage)
 })
 
 assetRouter.get('/:id', async (request, response) => {
-  const parsedId = assetIdSchema.safeParse(request.params.id)
+  const assetId = parseAssetId(request.params.id)
 
-  if (!parsedId.success) {
-    throw new ApiError(400, 'INVALID_ASSET_ID', 'Invalid asset ID')
-  }
-
-  const asset = await assetService.findById(parsedId.data)
+  const asset = await assetService.findById(assetId)
 
   if (!asset) {
     throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
@@ -75,12 +78,8 @@ assetRouter.post('/', async (request, response) => {
 })
 
 assetRouter.patch('/:id', async (request, response) => {
-  const parsedId = assetIdSchema.safeParse(request.params.id)
+  const assetId = parseAssetId(request.params.id)
   const parsedBody = updateAssetInputSchema.safeParse(request.body)
-
-  if (!parsedId.success) {
-    throw new ApiError(400, 'INVALID_ASSET_ID', 'Invalid asset ID')
-  }
 
   if (!parsedBody.success) {
     throw new ApiError(
@@ -91,7 +90,7 @@ assetRouter.patch('/:id', async (request, response) => {
     )
   }
 
-  const asset = await assetService.update(parsedId.data, parsedBody.data)
+  const asset = await assetService.update(assetId, parsedBody.data)
 
   if (!asset) {
     throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
@@ -101,13 +100,9 @@ assetRouter.patch('/:id', async (request, response) => {
 })
 
 assetRouter.delete('/:id', async (request, response) => {
-  const parsedId = assetIdSchema.safeParse(request.params.id)
+  const assetId = parseAssetId(request.params.id)
 
-  if (!parsedId.success) {
-    throw new ApiError(400, 'INVALID_ASSET_ID', 'Invalid asset ID')
-  }
-
-  const deleted = await assetService.delete(parsedId.data)
+  const deleted = await assetService.delete(assetId)
 
   if (!deleted) {
     throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')

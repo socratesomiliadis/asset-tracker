@@ -1,16 +1,10 @@
+import { AssetStatusBadge } from '@/components/asset-status-badge'
 import type { Asset } from '@asset-tracker/shared'
 import { MapPin } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-
-const statusStyles = {
-  ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  warning: 'border-amber-200 bg-amber-50 text-amber-700',
-  critical: 'border-red-200 bg-red-50 text-red-700',
-} satisfies Record<Asset['status'], string>
 
 type AssetListProps = {
   assets: Asset[]
@@ -107,9 +101,7 @@ export function AssetList({
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
-                    <Badge variant="outline" className={statusStyles[asset.status]}>
-                      {asset.status}
-                    </Badge>
+                    <AssetStatusBadge status={asset.status} />
                     <span className="text-xs capitalize text-muted-foreground">
                       {asset.type}
                     </span>

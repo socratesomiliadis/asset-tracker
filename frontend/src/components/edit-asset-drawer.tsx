@@ -1,15 +1,7 @@
 import type { Asset, UpdateAssetInput } from '@asset-tracker/shared'
-import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { AssetForm } from '@/components/asset-form'
-import { Button } from '@/components/ui/button'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+import { AssetFormDrawer } from '@/components/asset-form-drawer'
 import { useUpdateAsset } from '@/hooks/use-update-asset'
 
 type EditAssetDrawerProps = {
@@ -53,53 +45,24 @@ export function EditAssetDrawer({
   }
 
   return (
-    <Drawer
+    <AssetFormDrawer
       open={Boolean(asset)}
-      swipeDirection="right"
-      onOpenChange={(open) => {
-        if (!open) closeDrawer()
-      }}
+      onClose={closeDrawer}
+      title="Edit asset"
+      description="Update asset information and its map location."
+      closeLabel="Close edit asset form"
+      isPending={updateAsset.isPending}
+      error={updateAsset.error}
     >
-      <DrawerContent className="sm:[--drawer-content-width:36rem]">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Close edit asset form"
-          className="absolute top-3 right-3 z-10"
-          disabled={updateAsset.isPending}
-          onClick={closeDrawer}
-        >
-          <X />
-        </Button>
-        <DrawerHeader className="border-b pb-4 pr-14">
-          <DrawerTitle>Edit asset</DrawerTitle>
-          <DrawerDescription>
-            Update asset information and its map location.
-          </DrawerDescription>
-        </DrawerHeader>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {updateAsset.isError && (
-            <div
-              role="alert"
-              className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-              {updateAsset.error.message}
-            </div>
-          )}
-
-          {asset && (
-            <AssetForm
-              mode="edit"
-              initialValues={asset}
-              isSubmitting={updateAsset.isPending}
-              submitLabel={updateAsset.isPending ? 'Saving…' : 'Save changes'}
-              onSubmit={submitAsset}
-            />
-          )}
-        </div>
-      </DrawerContent>
-    </Drawer>
+      {asset && (
+        <AssetForm
+          mode="edit"
+          initialValues={asset}
+          isSubmitting={updateAsset.isPending}
+          submitLabel={updateAsset.isPending ? 'Saving…' : 'Save changes'}
+          onSubmit={submitAsset}
+        />
+      )}
+    </AssetFormDrawer>
   )
 }

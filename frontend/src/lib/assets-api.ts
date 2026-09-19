@@ -1,7 +1,7 @@
 import type {
   Asset,
-  AssetStatus,
-  AssetType,
+  AssetPage,
+  AssetQueryParams,
   CreateAssetInput,
   UpdateAssetInput,
 } from '@asset-tracker/shared'
@@ -44,23 +44,28 @@ async function getApiError(response: Response, fallbackMessage: string) {
   )
 }
 
-export type GetAssetsParams = {
-  type?: AssetType
-  status?: AssetStatus
-  minLat?: number
-  maxLat?: number
-  minLng?: number
-  maxLng?: number
-  limit: number
-  offset: number
+export type GetAssetsParams = Pick<
+  AssetQueryParams,
+  'type' | 'status' | 'minLat' | 'maxLat' | 'minLng' | 'maxLng'
+> & Required<Pick<AssetQueryParams, 'limit' | 'offset'>>
+
+export type { AssetPage } from '@asset-tracker/shared'
+
+async function requestAssets(
+  path: string,
+  fallbackMessage: string,
+  options?: RequestInit,
+): Promise<Response> {
+  const response = await fetch(`/api/assets${path}`, options)
+  if (!response.ok) throw await getApiError(response, fallbackMessage)
+  return response
 }
 
-export type AssetPage = {
-  data: Asset[]
-  meta: {
-    total: number
-    limit: number
-    offset: number
+function jsonBody(method: 'POST' | 'PATCH', input: CreateAssetInput | UpdateAssetInput): RequestInit {
+  return {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
   }
 }
 
@@ -77,56 +82,20 @@ export async function getAssets(params: GetAssetsParams): Promise<AssetPage> {
   if (params.minLng !== undefined) query.set('minLng', String(params.minLng))
   if (params.maxLng !== undefined) query.set('maxLng', String(params.maxLng))
 
-  const response = await fetch(`/api/assets?${query}`)
-
-  if (!response.ok) {
-    throw await getApiError(response, 'Failed to load assets')
-  }
-
+  const response = await requestAssets(`?${query}`, 'Failed to load assets')
   return response.json() as Promise<AssetPage>
 }
 
 export async function createAsset(input: CreateAssetInput): Promise<Asset> {
-  const response = await fetch('/api/assets', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    throw await getApiError(response, 'Failed to create asset')
-  }
-
+  const response = await requestAssets('', 'Failed to create asset', jsonBody('POST', input))
   return response.json() as Promise<Asset>
 }
 
-export async function updateAsset(
-  id: string,
-  input: UpdateAssetInput,
-): Promise<Asset> {
-  const response = await fetch(`/api/assets/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    throw await getApiError(response, 'Failed to update asset')
-  }
-
+export async function updateAsset(id: string, input: UpdateAssetInput): Promise<Asset> {
+  const response = await requestAssets(`/${id}`, 'Failed to update asset', jsonBody('PATCH', input))
   return response.json() as Promise<Asset>
 }
 
 export async function deleteAsset(id: string): Promise<void> {
-  const response = await fetch(`/api/assets/${id}`, {
-    method: 'DELETE',
-  })
-
-  if (!response.ok) {
-    throw await getApiError(response, 'Failed to delete asset')
-  }
+  await requestAssets(`/${id}`, 'Failed to delete asset', { method: 'DELETE' })
 }

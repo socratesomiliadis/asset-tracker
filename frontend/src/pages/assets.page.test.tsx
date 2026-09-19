@@ -1,3 +1,10 @@
+import type { AssetFilters } from '@/components/asset-filters'
+import type { CreateAssetDrawer } from '@/components/create-asset-drawer'
+import type { EditAssetDrawer } from '@/components/edit-asset-drawer'
+import type { DeleteAssetDialog } from '@/components/delete-asset-dialog'
+import type { AssetDetails } from '@/components/asset-details'
+import type { AssetMap } from '@/components/asset-map'
+import type { ComponentProps } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -7,30 +14,30 @@ import { AssetsPage } from './assets.page'
 
 vi.mock('@/lib/assets-api', () => ({ getAssets: vi.fn() }))
 vi.mock('@/components/asset-map', () => ({
-  AssetMap: ({ assets, onSearchArea, onClearArea, hasActiveAreaSearch, isError }: any) => <div>
+  AssetMap: ({ assets, onSearchArea, onClearArea, hasActiveAreaSearch, isError }: ComponentProps<typeof AssetMap>) => <div>
     <span>{isError ? 'Map unavailable' : `Map assets: ${assets.length}`}</span>
     <button onClick={() => onSearchArea({ minLat: 0, maxLat: 1, minLng: 0, maxLng: 1 })}>Search area</button>
     {hasActiveAreaSearch && <button onClick={onClearArea}>Clear area</button>}
   </div>,
 }))
 vi.mock('@/components/asset-details', () => ({
-  AssetDetails: ({ asset, onDelete, onEdit }: any) => asset && <div>
+  AssetDetails: ({ asset, onDelete, onEdit }: ComponentProps<typeof AssetDetails>) => asset && <div>
     <span>Details: {asset.name}</span>
     <button onClick={() => onDelete(asset)}>Delete selected</button>
     <button onClick={() => onEdit(asset)}>Edit selected</button>
   </div>,
 }))
 vi.mock('@/components/delete-asset-dialog', () => ({
-  DeleteAssetDialog: ({ asset, onDeleted }: any) => asset && <button onClick={onDeleted}>Confirm deletion</button>,
+  DeleteAssetDialog: ({ asset, onDeleted }: ComponentProps<typeof DeleteAssetDialog>) => asset && <button onClick={onDeleted}>Confirm deletion</button>,
 }))
 vi.mock('@/components/edit-asset-drawer', () => ({
-  EditAssetDrawer: ({ asset, onUpdated }: any) => asset && <button onClick={() => onUpdated({ ...asset, lat: 40 })}>Finish edit</button>,
+  EditAssetDrawer: ({ asset, onUpdated }: ComponentProps<typeof EditAssetDrawer>) => asset && <button onClick={() => onUpdated({ ...asset, lat: 40 })}>Finish edit</button>,
 }))
 vi.mock('@/components/create-asset-drawer', () => ({
-  CreateAssetDrawer: ({ open, onCreated }: any) => open && <button onClick={() => onCreated({})}>Finish creation</button>,
+  CreateAssetDrawer: ({ open, onCreated }: ComponentProps<typeof CreateAssetDrawer>) => open && <button onClick={() => onCreated(asset)}>Finish creation</button>,
 }))
 vi.mock('@/components/asset-filters', () => ({
-  AssetFilters: ({ onTypeChange }: any) => <button onClick={() => onTypeChange('sensor')}>Filter sensors</button>,
+  AssetFilters: ({ onTypeChange }: ComponentProps<typeof AssetFilters>) => <button onClick={() => onTypeChange('sensor')}>Filter sensors</button>,
 }))
 
 const asset: Asset = { id: 'a', name: 'Test asset', type: 'pipe', status: 'ok', lat: 40, lng: -70, installed_at: '2026-01-01', last_inspected_at: null, notes: '' }

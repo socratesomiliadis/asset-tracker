@@ -1,3 +1,4 @@
+import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
 import { Map, Marker, NavigationControl } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 
@@ -47,26 +48,9 @@ export function AssetLocationPicker({
       container,
       center: initialLocation
         ? [initialLocation.lng, initialLocation.lat]
-        : [-98.5, 39.5],
-      zoom: initialLocation ? 14 : 3,
-      style: {
-        version: 8,
-        sources: {
-          openStreetMap: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
-          },
-        },
-        layers: [
-          {
-            id: 'openStreetMap',
-            type: 'raster',
-            source: 'openStreetMap',
-          },
-        ],
-      },
+        : DEFAULT_MAP_CENTER,
+      zoom: initialLocation ? 14 : DEFAULT_MAP_ZOOM,
+      style: createMapStyle(),
     })
 
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')

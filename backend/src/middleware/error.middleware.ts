@@ -2,7 +2,7 @@ import type { ErrorRequestHandler } from 'express'
 import { ApiError } from '../errors/api.error.js'
 
 export const errorHandler: ErrorRequestHandler = (
-  error,
+  error: unknown,
   _request,
   response,
   _next,
@@ -18,7 +18,10 @@ export const errorHandler: ErrorRequestHandler = (
     return
   }
 
-  if (error?.type === 'entity.too.large') {
+  const errorType =
+    error && typeof error === 'object' && 'type' in error ? error.type : undefined
+
+  if (errorType === 'entity.too.large') {
     response.status(413).json({
       error: {
         code: 'PAYLOAD_TOO_LARGE',
@@ -28,7 +31,7 @@ export const errorHandler: ErrorRequestHandler = (
     return
   }
 
-  if (error?.type === 'entity.parse.failed') {
+  if (errorType === 'entity.parse.failed') {
     response.status(400).json({
       error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON.' },
     })

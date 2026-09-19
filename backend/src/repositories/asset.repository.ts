@@ -1,3 +1,4 @@
+import { DEFAULT_ASSET_LIMIT, DEFAULT_ASSET_OFFSET } from '@asset-tracker/shared'
 import { randomUUID } from 'node:crypto'
 import type {
   Asset,
@@ -75,8 +76,8 @@ export class AssetRepository {
       .from(assets)
       .where(and(...getConditions(params)))
       .orderBy(sortDirection(sortColumn), asc(assets.id))
-      .limit(params.limit ?? 50)
-      .offset(params.offset ?? 0)
+      .limit(params.limit ?? DEFAULT_ASSET_LIMIT)
+      .offset(params.offset ?? DEFAULT_ASSET_OFFSET)
 
     return rows.map(toAsset)
   }

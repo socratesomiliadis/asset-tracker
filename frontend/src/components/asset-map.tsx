@@ -1,3 +1,4 @@
+import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
 import type { Asset } from '@asset-tracker/shared'
 import { LngLatBounds, Map, Marker, NavigationControl, Popup } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
@@ -67,26 +68,9 @@ export function AssetMap({
 
     const map = new Map({
       container,
-      center: [-98.5, 39.5],
-      zoom: 3,
-      style: {
-        version: 8,
-        sources: {
-          openStreetMap: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
-          },
-        },
-        layers: [
-          {
-            id: 'openStreetMap',
-            type: 'raster',
-            source: 'openStreetMap',
-          },
-        ],
-      },
+      center: DEFAULT_MAP_CENTER,
+      zoom: DEFAULT_MAP_ZOOM,
+      style: createMapStyle(),
     })
 
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')

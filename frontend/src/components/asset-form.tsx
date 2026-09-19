@@ -1,22 +1,21 @@
 import type {
-  AssetStatus,
-  AssetType,
   CreateAssetInput,
   UpdateAssetInput,
 } from '@asset-tracker/shared'
 import {
+  assetTypeSchema,
+  assetStatusSchema,
   createAssetInputSchema,
   updateAssetInputSchema,
 } from '@asset-tracker/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  Controller,
   type DefaultValues,
   type Resolver,
   useForm,
   useWatch,
 } from 'react-hook-form'
-import { useCallback, useId, useMemo } from 'react'
+import { useCallback, useId } from 'react'
 import { AssetLocationPicker } from '@/components/asset-location-picker'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,13 +26,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { AssetSelectField } from '@/components/asset-select-field'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
@@ -57,9 +50,6 @@ type AssetFormProps = SharedAssetFormProps &
       }
   )
 
-const assetTypes = ['pipe', 'hydrant', 'sensor', 'valve'] as const satisfies readonly AssetType[]
-const assetStatuses = ['ok', 'warning', 'critical'] as const satisfies readonly AssetStatus[]
-
 function toDateInputValue(value?: string | null) {
   return value ? value.slice(0, 10) : value
 }
@@ -68,20 +58,17 @@ export function AssetForm(props: AssetFormProps) {
   const formId = useId()
   const validationSchema =
     props.mode === 'create' ? createAssetInputSchema : updateAssetInputSchema
-  const defaultValues = useMemo<DefaultValues<CreateAssetInput>>(
-    () => ({
-      name: props.initialValues?.name ?? '',
-      type: props.initialValues?.type ?? 'pipe',
-      status: props.initialValues?.status ?? 'ok',
-      installed_at: toDateInputValue(props.initialValues?.installed_at) ?? '',
-      last_inspected_at:
-        toDateInputValue(props.initialValues?.last_inspected_at) ?? null,
-      notes: props.initialValues?.notes ?? '',
-      lat: props.initialValues?.lat,
-      lng: props.initialValues?.lng,
-    }),
-    [props.initialValues],
-  )
+  const defaultValues: DefaultValues<CreateAssetInput> = {
+    name: props.initialValues?.name ?? '',
+    type: props.initialValues?.type ?? 'pipe',
+    status: props.initialValues?.status ?? 'ok',
+    installed_at: toDateInputValue(props.initialValues?.installed_at) ?? '',
+    last_inspected_at:
+      toDateInputValue(props.initialValues?.last_inspected_at) ?? null,
+    notes: props.initialValues?.notes ?? '',
+    lat: props.initialValues?.lat,
+    lng: props.initialValues?.lng,
+  }
   const {
     control,
     formState: { errors },
@@ -116,11 +103,7 @@ export function AssetForm(props: AssetFormProps) {
 
   const submitForm = handleSubmit((values) => {
     if (props.isSubmitting) return
-    if (props.mode === 'create') {
-      props.onSubmit?.(values)
-    } else {
-      props.onSubmit?.(values)
-    }
+    props.onSubmit?.(values)
   })
 
   return (
@@ -142,66 +125,19 @@ export function AssetForm(props: AssetFormProps) {
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Controller
+          <AssetSelectField
             control={control}
             name="type"
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={`${formId}-type`}>Type</FieldLabel>
-                <Select
-                  name={field.name}
-                  value={field.value}
-                  onValueChange={(value) => field.onChange(value as AssetType)}
-                >
-                  <SelectTrigger
-                    id={`${formId}-type`}
-                    className="w-full"
-                    aria-invalid={fieldState.invalid}
-                  >
-                    <SelectValue placeholder="Select a type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assetTypes.map((type) => (
-                      <SelectItem value={type} key={type}>
-                        <span className="capitalize">{type}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
+            label="Type"
+            id={`${formId}-type`}
+            options={assetTypeSchema.options}
           />
-
-          <Controller
+          <AssetSelectField
             control={control}
             name="status"
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={`${formId}-status`}>Status</FieldLabel>
-                <Select
-                  name={field.name}
-                  value={field.value}
-                  onValueChange={(value) => field.onChange(value as AssetStatus)}
-                >
-                  <SelectTrigger
-                    id={`${formId}-status`}
-                    className="w-full"
-                    aria-invalid={fieldState.invalid}
-                  >
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assetStatuses.map((status) => (
-                      <SelectItem value={status} key={status}>
-                        <span className="capitalize">{status}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
+            label="Status"
+            id={`${formId}-status`}
+            options={assetStatusSchema.options}
           />
         </div>
 

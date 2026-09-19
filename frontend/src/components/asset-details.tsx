@@ -1,3 +1,4 @@
+import { AssetStatusBadge } from '@/components/asset-status-badge'
 import type { Asset } from '@asset-tracker/shared'
 import { CalendarDays, MapPin, Pencil, Trash2, X } from 'lucide-react'
 import { useState, useSyncExternalStore } from 'react'
@@ -13,12 +14,6 @@ import {
 } from '@/components/ui/drawer'
 
 const wideLayoutQuery = '(min-width: 96rem)'
-
-const statusStyles = {
-  ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  warning: 'border-amber-200 bg-amber-50 text-amber-700',
-  critical: 'border-red-200 bg-red-50 text-red-700',
-} satisfies Record<Asset['status'], string>
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -61,9 +56,7 @@ function DetailsFields({ asset }: { asset: Asset }) {
         <div>
           <dt className="text-xs font-medium text-muted-foreground">Status</dt>
           <dd className="mt-1.5">
-            <Badge variant="outline" className={statusStyles[asset.status]}>
-              {asset.status}
-            </Badge>
+            <AssetStatusBadge status={asset.status} />
           </dd>
         </div>
       </div>
@@ -150,6 +143,7 @@ export function AssetDetails({
   onDelete,
   onEdit,
 }: AssetDetailsProps) {
+  // Keep the last asset visible during the closing animation.
   const [displayedAsset, setDisplayedAsset] = useState(asset)
   const isWideLayout = useSyncExternalStore(
     subscribeToWideLayout,
@@ -212,22 +206,11 @@ export function AssetDetails({
               <DetailsFields asset={displayedAsset} />
             </div>
             <DrawerFooter className="grid grid-cols-2 border-t pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onEdit(displayedAsset)}
-              >
-                <Pencil data-icon="inline-start" />
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => onDelete(displayedAsset)}
-              >
-                <Trash2 data-icon="inline-start" />
-                Delete
-              </Button>
+              <DetailsActions
+                className="contents"
+                onEdit={() => onEdit(displayedAsset)}
+                onDelete={() => onDelete(displayedAsset)}
+              />
             </DrawerFooter>
           </DrawerContent>
         </Drawer>

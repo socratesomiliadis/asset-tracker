@@ -1,8 +1,11 @@
 import { z } from 'zod'
 
-export const assetTypeSchema = z.enum(['pipe', 'hydrant', 'sensor', 'valve'])
+export const ASSET_TYPES = ['pipe', 'hydrant', 'sensor', 'valve'] as const
+export const ASSET_STATUSES = ['ok', 'warning', 'critical'] as const
 
-export const assetStatusSchema = z.enum(['ok', 'warning', 'critical'])
+export const assetTypeSchema = z.enum(ASSET_TYPES)
+
+export const assetStatusSchema = z.enum(ASSET_STATUSES)
 
 export const assetIdSchema = z.string().uuid()
 
@@ -114,3 +117,11 @@ export type CreateAssetInput = z.infer<typeof createAssetInputSchema>
 export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>
 export type AssetFilters = z.infer<typeof assetFiltersSchema>
 export type AssetQueryParams = z.infer<typeof assetQueryParamsSchema>
+
+export type AssetPage = {
+  data: Asset[]
+  meta: { total: number; limit: number; offset: number }
+}
+
+export const DEFAULT_ASSET_LIMIT = 50
+export const DEFAULT_ASSET_OFFSET = 0
