@@ -52,6 +52,7 @@ export function CreateAssetDrawer({
       {open && (
         <AssetForm
           mode="create"
+          scrollable
           serverError={createAsset.error}
           isSubmitting={createAsset.isPending}
           submitLabel={createAsset.isPending ? 'Creating…' : 'Create asset'}

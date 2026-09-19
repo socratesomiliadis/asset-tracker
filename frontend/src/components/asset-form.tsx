@@ -34,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
 type SharedAssetFormProps = {
+  scrollable?: boolean
   className?: string
   isSubmitting?: boolean
   submitLabel?: string
@@ -146,11 +147,11 @@ export function AssetForm(props: AssetFormProps) {
 
   return (
     <form
-      className={cn('space-y-6', props.className)}
+      className={cn(props.scrollable ? 'flex min-h-0 flex-1 flex-col' : 'space-y-6', props.className)}
       noValidate
       onSubmit={submitForm}
     >
-      <FieldGroup className="gap-5">
+      <FieldGroup className={cn('gap-5', props.scrollable && 'min-h-0 flex-1 overflow-y-auto p-4 sm:p-6')}>
         <Field data-invalid={Boolean(errors.name)}>
           <FieldLabel htmlFor={`${formId}-name`}>Name</FieldLabel>
           <Input
@@ -277,7 +278,7 @@ export function AssetForm(props: AssetFormProps) {
         </Field>
       </FieldGroup>
 
-      <div className="flex justify-end">
+      <div className={cn('flex justify-end', props.scrollable && 'shrink-0 border-t bg-background px-4 py-4 sm:px-6')}>
         <Button
           type="submit"
           disabled={props.isSubmitting || (props.mode === 'edit' && !isDirty)}

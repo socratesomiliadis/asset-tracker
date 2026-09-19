@@ -38,7 +38,7 @@ export function AssetFormDrawer({
         if (!nextOpen) onClose()
       }}
     >
-      <DrawerContent className="sm:[--drawer-content-width:36rem]">
+      <DrawerContent className="data-[swipe-axis=x]:[--drawer-content-width:calc(100vw-1rem)] data-[swipe-axis=x]:sm:[--drawer-content-width:36rem] data-[swipe-axis=x]:lg:[--drawer-content-width:44rem]">
         <Button
           type="button"
           variant="ghost"
@@ -50,15 +50,15 @@ export function AssetFormDrawer({
         >
           <X />
         </Button>
-        <DrawerHeader className="border-b pb-4 pr-14">
+        <DrawerHeader className="shrink-0 border-b pb-4 pr-14">
           <DrawerTitle>{title}</DrawerTitle>
           <DrawerDescription>{description}</DrawerDescription>
         </DrawerHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {error && (
             <div
               role="alert"
-              className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className="mx-4 mt-4 max-h-24 shrink-0 overflow-y-auto rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
             >
               {error.message}
             </div>

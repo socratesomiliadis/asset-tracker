@@ -57,6 +57,7 @@ export function EditAssetDrawer({
       {asset && (
         <AssetForm
           mode="edit"
+          scrollable
           serverError={updateAsset.error}
           initialValues={asset}
           isSubmitting={updateAsset.isPending}
