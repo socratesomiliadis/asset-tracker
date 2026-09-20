@@ -148,17 +148,24 @@ export const assetQueryParamsSchema = assetFiltersSchema
 export type AssetType = z.infer<typeof assetTypeSchema>
 export type AssetStatus = z.infer<typeof assetStatusSchema>
 export type Asset = z.infer<typeof assetSchema>
-export type MapAsset = Pick<Asset, 'id' | 'name' | 'type' | 'status' | 'lat' | 'lng'>
+export const mapAssetSchema = assetSchema.pick({
+  id: true, name: true, type: true, status: true, lat: true, lng: true,
+})
+export type MapAsset = z.infer<typeof mapAssetSchema>
 export type CreateAssetInput = z.infer<typeof createAssetInputSchema>
 export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>
 export type AssetFilters = z.infer<typeof assetFiltersSchema>
 export type AssetQueryParams = z.infer<typeof assetQueryParamsSchema>
 
-export type AssetPage = {
-  data: Asset[]
-  meta: { total: number; limit: number; offset: number }
-}
-export type MapAssetPage = Omit<AssetPage, 'data'> & { data: MapAsset[] }
+const pageMetaSchema = z.object({
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().min(1).max(100),
+  offset: z.number().int().nonnegative(),
+})
+export const assetPageSchema = z.object({ data: z.array(assetSchema), meta: pageMetaSchema })
+export const mapAssetPageSchema = z.object({ data: z.array(mapAssetSchema), meta: pageMetaSchema })
+export type AssetPage = z.infer<typeof assetPageSchema>
+export type MapAssetPage = z.infer<typeof mapAssetPageSchema>
 
 export const DEFAULT_ASSET_LIMIT = 50
 export const DEFAULT_ASSET_OFFSET = 0

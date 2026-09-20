@@ -190,3 +190,38 @@ it('identifies marker types and labels only the selected asset without opening a
   expect(screen.getByRole('button', { name: 'Select Test hydrant' }).querySelector('.asset-pin-label')).toBeNull()
   expect(screen.getByRole('button', { name: 'Select Test valve' }).querySelector('.asset-pin-label')?.textContent).toBe('Test valve')
 })
+
+it('retains marker identity and keyboard focus through movement, selection, and data updates', () => {
+  map.zoom = 16
+  const onSelect = vi.fn()
+  const { rerender } = render(<AssetMap {...props} assets={assets} onSelectAsset={onSelect} />)
+  const marker = screen.getByRole('button', { name: 'Select Asset 0' })
+  marker.focus()
+  zoomTo(16)
+  expect(screen.getByRole('button', { name: 'Select Asset 0' })).toBe(marker)
+  expect(document.activeElement).toBe(marker)
+  const nextOnSelect = vi.fn()
+  const updated = assets.map((asset) => asset.id === '0'
+    ? { ...asset, name: 'Renamed valve', status: 'critical' as const, type: 'valve' as const, lng: -71 }
+    : asset)
+  rerender(<AssetMap {...props} assets={updated} selectedAssetId="0" onSelectAsset={nextOnSelect} />)
+  expect(screen.getByRole('button', { name: 'Select Renamed valve' })).toBe(marker)
+  expect(document.activeElement).toBe(marker)
+  expect(marker.getAttribute('aria-pressed')).toBe('true')
+  expect(marker.style.backgroundColor).toBe('#ef4444')
+  expect(marker.querySelector('svg')?.getAttribute('data-asset-type')).toBe('valve')
+  fireEvent.click(marker)
+  expect(nextOnSelect).toHaveBeenCalledExactlyOnceWith('0')
+  expect(onSelect).not.toHaveBeenCalled()
+})
+
+it('updates a retained cluster button when the index is rebuilt', async () => {
+  const { rerender } = render(<AssetMap {...props} assets={assets} onSelectAsset={vi.fn()} />)
+  const cluster = screen.getByRole('button', { name: /^Expand cluster:/ })
+  const changed = assets.map((asset) => ({ ...asset, status: 'critical' as const }))
+  rerender(<AssetMap {...props} assets={changed} onSelectAsset={vi.fn()} />)
+  expect(screen.getByRole('button', { name: 'Expand cluster: 3 assets; 0 OK; 0 Warning; 3 Critical' })).toBe(cluster)
+  fireEvent.focus(cluster)
+  const preview = await screen.findByRole('dialog', { name: '3 assets' })
+  expect(within(preview).getAllByRole('definition').map((entry) => entry.textContent)).toEqual(['0', '0', '3'])
+})

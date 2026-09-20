@@ -1,4 +1,4 @@
-import { app } from './app.js'
+import { app } from './bootstrap.js'
 import { env } from './config.js'
 import { pool } from './db/index.js'
 import { initializeAssets } from './db/initialize.js'

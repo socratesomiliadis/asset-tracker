@@ -4,14 +4,18 @@ import type {
   CreateAssetInput,
   UpdateAssetInput,
 } from '@asset-tracker/shared'
-import { assetRepository } from '../repositories/asset.repository.js'
+import type { AssetRepository } from '../repositories/asset.repository.js'
 import { createAssetInputSchema } from '@asset-tracker/shared'
-import { ApiError } from '../errors/api.error.js'
+import { AssetValidationError } from '../errors/asset-validation.error.js'
+
+export type AssetStore = Pick<AssetRepository, 'findMapPoints' | 'findMany' | 'count' | 'findById' | 'create' | 'update' | 'delete'>
 
 export class AssetService {
+  constructor(private readonly repository: AssetStore) {}
+
   async findMapPoints(params: AssetQueryParams) {
     const [data, total] = await Promise.all([
-      assetRepository.findMapPoints(params), assetRepository.count(params),
+      this.repository.findMapPoints(params), this.repository.count(params),
     ])
     return { data, total }
   }
@@ -21,36 +25,36 @@ export class AssetService {
     total: number
   }> {
     const [data, total] = await Promise.all([
-      assetRepository.findMany(params),
-      assetRepository.count(params),
+      this.repository.findMany(params),
+      this.repository.count(params),
     ])
 
     return { data, total }
   }
 
   findById(id: string): Promise<Asset | null> {
-    return assetRepository.findById(id)
+    return this.repository.findById(id)
   }
 
   create(input: CreateAssetInput): Promise<Asset> {
-    return assetRepository.create(input)
+    return this.repository.create(input)
   }
 
   async update(id: string, input: UpdateAssetInput): Promise<Asset | null> {
-    const existing = await assetRepository.findById(id)
+    const existing = await this.repository.findById(id)
     if (!existing) return null
     const { id: _id, ...values } = existing
     const parsed = createAssetInputSchema.safeParse({ ...values, ...input })
     if (!parsed.success) {
-      throw new ApiError(400, 'INVALID_REQUEST_BODY', 'Invalid request body', parsed.error.flatten())
+      throw new AssetValidationError(parsed.error.flatten())
     }
     // Validate the merged state, but only write the fields supplied by the caller.
-    return assetRepository.update(id, input)
+    return this.repository.update(id, input)
   }
 
   delete(id: string): Promise<boolean> {
-    return assetRepository.delete(id)
+    return this.repository.delete(id)
   }
 }
 
-export const assetService = new AssetService()
+export type AssetOperations = Pick<AssetService, 'findMapPoints' | 'findMany' | 'findById' | 'create' | 'update' | 'delete'>

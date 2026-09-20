@@ -2,9 +2,13 @@ import request from 'supertest'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { INSPECTION_DATE_ERROR } from '@asset-tracker/shared'
 
-const repository = vi.hoisted(() => ({ findById: vi.fn(), create: vi.fn(), update: vi.fn() }))
-vi.mock('../repositories/asset.repository.js', () => ({ assetRepository: repository }))
-import { app } from '../app.js'
+import { createApp } from '../app.js'
+import { AssetService, type AssetStore } from '../services/asset.service.js'
+const repository = {
+  findMany: vi.fn(), findMapPoints: vi.fn(), count: vi.fn(), delete: vi.fn(),
+  findById: vi.fn(), create: vi.fn(), update: vi.fn(),
+} satisfies AssetStore
+const app = createApp({ assetService: new AssetService(repository), corsOrigin: 'http://localhost:5173' })
 
 const asset = {
   id: '17fc695a-07a0-4a6e-8822-e8f36c031199', name: 'Sensor', type: 'sensor', status: 'ok',

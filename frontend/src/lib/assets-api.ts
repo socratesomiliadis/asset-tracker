@@ -6,14 +6,12 @@ import type {
   CreateAssetInput,
   UpdateAssetInput,
 } from '@asset-tracker/shared'
+import { assetSchema, assetPageSchema, mapAssetPageSchema } from '@asset-tracker/shared'
+import { z } from 'zod'
 
-type ApiErrorBody = {
-  error?: {
-    code?: string
-    message?: string
-    details?: unknown
-  }
-}
+const apiErrorSchema = z.object({ error: z.object({
+  code: z.string().optional(), message: z.string().optional(), details: z.unknown().optional(),
+}) })
 
 export class AssetsApiError extends Error {
   readonly status: number
@@ -35,7 +33,8 @@ export class AssetsApiError extends Error {
 }
 
 async function getApiError(response: Response, fallbackMessage: string) {
-  const body = (await response.json().catch(() => null)) as ApiErrorBody | null
+  const parsed = apiErrorSchema.safeParse(await response.json().catch(() => null))
+  const body = parsed.success ? parsed.data : undefined
 
   return new AssetsApiError(
     body?.error?.message ?? fallbackMessage,
@@ -43,6 +42,14 @@ async function getApiError(response: Response, fallbackMessage: string) {
     body?.error?.code,
     body?.error?.details,
   )
+}
+
+async function readAssetResponse<T>(response: Response, schema: z.ZodType<T>): Promise<T> {
+  const parsed = schema.safeParse(await response.json().catch(() => null))
+  if (!parsed.success) {
+    throw new AssetsApiError('The server returned invalid asset data. Try again.', response.status, 'INVALID_RESPONSE')
+  }
+  return parsed.data
 }
 
 export type GetAssetsParams = Pick<
@@ -90,27 +97,27 @@ function assetQueryString(params: GetAssetsParams) {
 
 export async function getAssets(params: GetAssetsParams, signal?: AbortSignal): Promise<AssetPage> {
   const response = await requestAssets(`?${assetQueryString(params)}`, 'Failed to load assets', { signal })
-  return response.json() as Promise<AssetPage>
+  return readAssetResponse(response, assetPageSchema)
 }
 
 export async function getMapAssets(params: GetAssetsParams, signal?: AbortSignal): Promise<MapAssetPage> {
   const response = await requestAssets(`/map?${assetQueryString(params)}`, 'Failed to load map assets', { signal })
-  return response.json() as Promise<MapAssetPage>
+  return readAssetResponse(response, mapAssetPageSchema)
 }
 
 export async function getAsset(id: string, signal?: AbortSignal): Promise<Asset> {
   const response = await requestAssets(`/${id}`, 'Failed to load asset details', { signal })
-  return response.json() as Promise<Asset>
+  return readAssetResponse(response, assetSchema)
 }
 
 export async function createAsset(input: CreateAssetInput): Promise<Asset> {
   const response = await requestAssets('', 'Failed to create asset', jsonBody('POST', input))
-  return response.json() as Promise<Asset>
+  return readAssetResponse(response, assetSchema)
 }
 
 export async function updateAsset(id: string, input: UpdateAssetInput): Promise<Asset> {
   const response = await requestAssets(`/${id}`, 'Failed to update asset', jsonBody('PATCH', input))
-  return response.json() as Promise<Asset>
+  return readAssetResponse(response, assetSchema)
 }
 
 export async function deleteAsset(id: string): Promise<void> {

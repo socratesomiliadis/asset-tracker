@@ -1,6 +1,6 @@
 import type { UpdateAssetInput } from '@asset-tracker/shared'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { assetQueryKeys } from '@/hooks/use-assets'
+import { assetSaved } from '@/lib/asset-cache'
 import { updateAsset } from '@/lib/assets-api'
 
 type UpdateAssetVariables = {
@@ -13,7 +13,6 @@ export function useUpdateAsset() {
 
   return useMutation({
     mutationFn: ({ id, input }: UpdateAssetVariables) => updateAsset(id, input),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: assetQueryKeys.all }),
+    onSuccess: (asset) => assetSaved(queryClient, asset),
   })
 }

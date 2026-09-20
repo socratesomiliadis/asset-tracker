@@ -1,4 +1,5 @@
 import { assetTypeLabels, assetStatusLabels } from '@/lib/asset-labels'
+import type { AssetFormValues } from '@/lib/asset-form-values'
 import type { CreateAssetInput } from '@asset-tracker/shared'
 import { Controller, type Control } from 'react-hook-form'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/select'
 
 type AssetSelectFieldProps = {
-  control: Control<CreateAssetInput>
+  control: Control<AssetFormValues, unknown, CreateAssetInput>
   name: 'type' | 'status'
   label: string
   id: string

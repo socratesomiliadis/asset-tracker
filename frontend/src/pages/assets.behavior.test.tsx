@@ -27,6 +27,11 @@ const asset: Asset = {
   last_inspected_at: null,
   notes: 'Check the pressure reading.',
 }
+function responseData(url: unknown, assets: Asset[]) {
+  return String(url).includes('/map?')
+    ? assets.map(({ id, name, type, status, lat, lng }) => ({ id, name, type, status, lat, lng }))
+    : assets
+}
 const fetchMock = vi.fn<typeof fetch>()
 let client: QueryClient
 let user: ReturnType<typeof userEvent.setup>
@@ -34,8 +39,8 @@ let user: ReturnType<typeof userEvent.setup>
 beforeEach(() => {
   user = userEvent.setup()
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({
-    data: [asset],
+  fetchMock.mockImplementation(async (url) => new Response(JSON.stringify({
+    data: responseData(url, [asset]),
     meta: { total: 1, limit: 25, offset: 0 },
   }), { headers: { 'Content-Type': 'application/json' } }))
   vi.stubGlobal('fetch', fetchMock)
@@ -141,7 +146,7 @@ it('PATCHes only notes and preserves the original installation and inspection ti
       return new Response(JSON.stringify(saved))
     }
     return new Response(JSON.stringify({
-      data: [saved], meta: { total: 1, limit: 25, offset: 0 },
+      data: responseData(_url, [saved]), meta: { total: 1, limit: 25, offset: 0 },
     }))
   })
 

@@ -10,7 +10,7 @@ const shutdown = () => shutdownPromise ??= (async () => {
   await database.close()
 })()
 try {
-  const { app } = await import('../src/app.js')
+  const { app } = await import('../src/bootstrap.js')
   const { pool } = await import('../src/db/index.js')
   const { initializeAssets } = await import('../src/db/initialize.js')
   stop = () => pool.end()

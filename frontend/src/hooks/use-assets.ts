@@ -2,12 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { MapAsset } from '@asset-tracker/shared'
 import { getAssets, getMapAssets, getAsset, type AssetFilterParams, type GetAssetsParams } from '@/lib/assets-api'
 
-export const assetQueryKeys = {
-  all: ['assets'] as const,
-  list: (params: GetAssetsParams) => [...assetQueryKeys.all, 'list', params] as const,
-  map: (params: AssetFilterParams) => [...assetQueryKeys.all, 'map', params] as const,
-  detail: (id: string | undefined) => [...assetQueryKeys.all, 'detail', id] as const,
-}
+import { assetQueryKeys } from '@/lib/asset-query-keys'
 
 export function useAsset(id: string | undefined) {
   return useQuery({

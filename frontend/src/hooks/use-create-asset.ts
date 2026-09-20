@@ -1,13 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createAsset } from '@/lib/assets-api'
-import { assetQueryKeys } from '@/hooks/use-assets'
+import { assetSaved } from '@/lib/asset-cache'
 
 export function useCreateAsset() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: createAsset,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: assetQueryKeys.all }),
+    onSuccess: (asset) => assetSaved(queryClient, asset),
   })
 }

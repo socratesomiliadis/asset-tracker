@@ -3,11 +3,12 @@ import { assetStatusLabels } from '@/lib/asset-labels'
 import { createMapStyle, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/map-config'
 import type { MapAsset, AssetStatus } from '@asset-tracker/shared'
 import { normalizeLongitudeBounds } from '@asset-tracker/shared'
-import { Map, Marker, NavigationControl } from 'maplibre-gl'
+import { Map, NavigationControl } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Supercluster from 'supercluster'
-import { createAssetMarkerElement, createClusterMarkerElement, markerColors } from '@/lib/asset-markers'
+import { markerColors } from '@/lib/asset-markers'
 import { useMapCamera, programmaticMoveEvent } from '@/hooks/use-map-camera'
+import { useMapMarkers, type ClusterPreview, type ClusterCounts } from '@/hooks/use-map-markers'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle } from '@/components/ui/popover'
@@ -55,13 +56,8 @@ export function AssetMap({
 }: AssetMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
-  const markersRef = useRef<Marker[]>([])
   const [showSearchArea, setShowSearchArea] = useState(false)
-  const [clusterPreview, setClusterPreview] = useState<{
-    anchor: HTMLElement
-    total: number
-    counts: Record<AssetStatus, number>
-  }>()
+  const [clusterPreview, setClusterPreview] = useState<ClusterPreview>()
   const previewCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const keepPreviewOpen = useCallback(() => clearTimeout(previewCloseTimer.current), [])
   const dismissPreview = useCallback(() => {
@@ -72,7 +68,7 @@ export function AssetMap({
     clearTimeout(previewCloseTimer.current)
     previewCloseTimer.current = setTimeout(() => setClusterPreview(undefined), 180)
   }, [])
-  const clusters = useMemo(() => new Supercluster<MapAsset, { warning: number; critical: number }>({
+  const clusters = useMemo(() => new Supercluster<MapAsset, ClusterCounts>({
     radius: 60,
     maxZoom: 14,
     map: (asset) => ({ warning: Number(asset.status === 'warning'), critical: Number(asset.status === 'critical') }),
@@ -111,69 +107,17 @@ export function AssetMap({
     return () => {
       clearTimeout(previewCloseTimer.current)
       resizeObserver.disconnect()
-      markersRef.current.forEach((marker) => marker.remove())
       map.remove()
       mapRef.current = null
     }
   }, [])
 
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map) return
-
-    const renderMarkers = () => {
-      dismissPreview()
-      markersRef.current.forEach((marker) => marker.remove())
-      const bounds = getSearchBounds(map)
-      markersRef.current = clusters.getClusters(
-        [bounds.minLng, bounds.minLat, bounds.maxLng, bounds.maxLat], Math.floor(map.getZoom()),
-      ).map((feature) => {
-        const coordinates = feature.geometry.coordinates as [number, number]
-        const properties = feature.properties
-        if ('cluster' in properties && properties.cluster) {
-          const counts = {
-            ok: properties.point_count - properties.warning - properties.critical,
-            warning: properties.warning,
-            critical: properties.critical,
-          }
-          const element = createClusterMarkerElement(properties.point_count, counts)
-          const showPreview = () => {
-            keepPreviewOpen()
-            setClusterPreview({ anchor: element, total: properties.point_count, counts })
-          }
-          element.addEventListener('mouseenter', showPreview)
-          element.addEventListener('mouseleave', schedulePreviewClose)
-          element.addEventListener('focus', showPreview)
-          element.addEventListener('blur', schedulePreviewClose)
-          element.addEventListener('click', () => {
-            dismissPreview()
-            map.easeTo({
-              center: coordinates,
-              zoom: clusters.getClusterExpansionZoom(properties.cluster_id),
-              duration: 500,
-            })
-          })
-          return new Marker({ element }).setLngLat(coordinates).addTo(map)
-        }
-
-        const asset = properties as MapAsset
-        const isSelected = asset.id === selectedAssetId
-        const element = createAssetMarkerElement(asset, isSelected)
-        element.addEventListener('click', () => onSelectAsset(asset.id))
-        return new Marker({ element }).setLngLat(coordinates)
-          .addTo(map)
-      })
-    }
-    renderMarkers()
-    map.on('moveend', renderMarkers)
-    map.on('movestart', dismissPreview)
-    return () => {
-      map.off('moveend', renderMarkers)
-      map.off('movestart', dismissPreview)
-      markersRef.current.forEach((marker) => marker.remove())
-      markersRef.current = []
-    }
-  }, [clusters, onSelectAsset, selectedAssetId, dismissPreview, keepPreviewOpen, schedulePreviewClose])
+  const showPreview = useCallback((preview: ClusterPreview) => {
+    keepPreviewOpen()
+    setClusterPreview(preview)
+  }, [keepPreviewOpen])
+  useMapMarkers({ mapRef, clusters, selectedAssetId, onSelectAsset,
+    showPreview, dismissPreview, schedulePreviewClose })
 
   useMapCamera(mapRef, assets, selectedAssetId, hasActiveAreaSearch)
 

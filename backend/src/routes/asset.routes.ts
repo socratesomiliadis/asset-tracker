@@ -8,7 +8,7 @@ import {
 } from '@asset-tracker/shared'
 import { Router } from 'express'
 import { ApiError } from '../errors/api.error.js'
-import { assetService } from '../services/asset.service.js'
+import type { AssetOperations } from '../services/asset.service.js'
 
 function parseAssetId(value: unknown): string {
   const result = assetIdSchema.safeParse(value)
@@ -17,8 +17,6 @@ function parseAssetId(value: unknown): string {
   }
   return result.data
 }
-
-export const assetRouter = Router()
 
 function parseListQuery(value: unknown) {
   const parsed = assetQueryParamsSchema.safeParse(value)
@@ -39,84 +37,89 @@ function parseListQuery(value: unknown) {
   }
 }
 
-assetRouter.get('/map', async (request, response) => {
-  const query = parseListQuery(request.query)
-  const result = await assetService.findMapPoints(query)
-  response.json({ data: result.data, meta: { total: result.total, limit: query.limit, offset: query.offset } })
-})
+export function createAssetRouter(assetService: AssetOperations) {
+  const assetRouter = Router()
+  assetRouter.get('/map', async (request, response) => {
+    const query = parseListQuery(request.query)
+    const result = await assetService.findMapPoints(query)
+    response.json({ data: result.data, meta: { total: result.total, limit: query.limit, offset: query.offset } })
+  })
 
-assetRouter.get('/', async (request, response) => {
-  const query = parseListQuery(request.query)
-  const result = await assetService.findMany(query)
+  assetRouter.get('/', async (request, response) => {
+    const query = parseListQuery(request.query)
+    const result = await assetService.findMany(query)
 
-  response.json({
-    data: result.data,
-    meta: {
-      total: result.total,
-      limit: query.limit,
-      offset: query.offset,
-    },
-  } satisfies AssetPage)
-})
+    response.json({
+      data: result.data,
+      meta: {
+        total: result.total,
+        limit: query.limit,
+        offset: query.offset,
+      },
+    } satisfies AssetPage)
+  })
 
-assetRouter.get('/:id', async (request, response) => {
-  const assetId = parseAssetId(request.params.id)
+  assetRouter.get('/:id', async (request, response) => {
+    const assetId = parseAssetId(request.params.id)
 
-  const asset = await assetService.findById(assetId)
+    const asset = await assetService.findById(assetId)
 
-  if (!asset) {
-    throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
-  }
+    if (!asset) {
+      throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
+    }
 
-  response.json(asset)
-})
+    response.json(asset)
+  })
 
-assetRouter.post('/', async (request, response) => {
-  const parsed = createAssetInputSchema.safeParse(request.body)
+  assetRouter.post('/', async (request, response) => {
+    const parsed = createAssetInputSchema.safeParse(request.body)
 
-  if (!parsed.success) {
-    throw new ApiError(
-      400,
-      'INVALID_REQUEST_BODY',
-      'Invalid request body',
-      parsed.error.flatten(),
-    )
-  }
+    if (!parsed.success) {
+      throw new ApiError(
+        400,
+        'INVALID_REQUEST_BODY',
+        'Invalid request body',
+        parsed.error.flatten(),
+      )
+    }
 
-  const asset = await assetService.create(parsed.data)
-  response.status(201).json(asset)
-})
+    const asset = await assetService.create(parsed.data)
+    response.status(201).json(asset)
+  })
 
-assetRouter.patch('/:id', async (request, response) => {
-  const assetId = parseAssetId(request.params.id)
-  const parsedBody = updateAssetInputSchema.safeParse(request.body)
+  assetRouter.patch('/:id', async (request, response) => {
+    const assetId = parseAssetId(request.params.id)
+    const parsedBody = updateAssetInputSchema.safeParse(request.body)
 
-  if (!parsedBody.success) {
-    throw new ApiError(
-      400,
-      'INVALID_REQUEST_BODY',
-      'Invalid request body',
-      parsedBody.error.flatten(),
-    )
-  }
+    if (!parsedBody.success) {
+      throw new ApiError(
+        400,
+        'INVALID_REQUEST_BODY',
+        'Invalid request body',
+        parsedBody.error.flatten(),
+      )
+    }
 
-  const asset = await assetService.update(assetId, parsedBody.data)
+    const asset = await assetService.update(assetId, parsedBody.data)
 
-  if (!asset) {
-    throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
-  }
+    if (!asset) {
+      throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
+    }
 
-  response.json(asset)
-})
+    response.json(asset)
+  })
 
-assetRouter.delete('/:id', async (request, response) => {
-  const assetId = parseAssetId(request.params.id)
+  assetRouter.delete('/:id', async (request, response) => {
+    const assetId = parseAssetId(request.params.id)
 
-  const deleted = await assetService.delete(assetId)
+    const deleted = await assetService.delete(assetId)
 
-  if (!deleted) {
-    throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
-  }
+    if (!deleted) {
+      throw new ApiError(404, 'ASSET_NOT_FOUND', 'Asset not found')
+    }
 
-  response.status(204).send()
-})
+    response.status(204).send()
+  })
+
+  return assetRouter
+}

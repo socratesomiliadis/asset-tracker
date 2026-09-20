@@ -20,7 +20,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('asset API through PostgreSQL', 
     // Date-only writes and filters must not depend on the connection timezone.
     url.searchParams.set('options', '-c timezone=America/New_York')
     vi.stubEnv('DATABASE_URL', url.toString())
-    ;({ app } = await import('../app.js'))
+    ;({ app } = await import('../bootstrap.js'))
     ;({ pool: apiPool } = await import('../db/index.js'))
   })
   beforeEach(async () => { await database.pool.query('TRUNCATE assets') })

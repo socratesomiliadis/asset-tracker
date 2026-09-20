@@ -4,21 +4,18 @@ import type {
 } from '@asset-tracker/shared'
 import {
   createAssetInputSchema,
-  updateAssetInputSchema,
   INSPECTION_DATE_ERROR,
 } from '@asset-tracker/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  type DefaultValues,
-  type Resolver,
   useForm,
   useWatch,
 } from 'react-hook-form'
-import { useCallback, useEffect, useId } from 'react'
+import { useCallback, useEffect, useId, useMemo } from 'react'
 import { z } from 'zod'
 import { AssetsApiError } from '@/lib/assets-api'
 import { LazyAssetLocationPicker } from '@/components/lazy-maps'
-import { toUtcInput, fromUtcInput } from '@/lib/asset-dates'
+import { createAssetFormSchema, toAssetFormValues, type AssetFormValues } from '@/lib/asset-form-values'
 import { Button } from '@/components/ui/button'
 import {
   Field,
@@ -56,19 +53,10 @@ type AssetFormProps = SharedAssetFormProps &
 
 export function AssetForm(props: AssetFormProps) {
   const formId = useId()
-  const validationSchema =
-    props.mode === 'create' ? createAssetInputSchema : updateAssetInputSchema
-  const defaultValues: DefaultValues<CreateAssetInput> = {
-    name: props.initialValues?.name ?? '',
-    type: props.initialValues?.type ?? 'pipe',
-    status: props.initialValues?.status ?? 'ok',
-    installed_at: toUtcInput(props.initialValues?.installed_at) ?? '',
-    last_inspected_at:
-      toUtcInput(props.initialValues?.last_inspected_at) ?? null,
-    notes: props.initialValues?.notes ?? '',
-    lat: props.initialValues?.lat,
-    lng: props.initialValues?.lng,
-  }
+  const defaultValues = useMemo(() => toAssetFormValues(props.initialValues), [props.initialValues])
+  const validationSchema = useMemo(() => createAssetFormSchema(
+    props.mode === 'edit' ? props.initialValues : undefined,
+  ), [props.mode, props.initialValues])
   const {
     control,
     formState: { errors, dirtyFields, isDirty },
@@ -76,25 +64,10 @@ export function AssetForm(props: AssetFormProps) {
     register,
     setValue,
     setError,
-  } = useForm<CreateAssetInput>({
+  } = useForm<AssetFormValues, unknown, CreateAssetInput>({
     defaultValues,
     mode: 'onBlur',
-    resolver: (values, context, options) => {
-      const effectiveValues = {
-        ...values,
-        installed_at: fromUtcInput(values.installed_at),
-        last_inspected_at: values.last_inspected_at ? fromUtcInput(values.last_inspected_at) : null,
-      }
-      if (props.mode === 'edit') {
-        if (values.installed_at === defaultValues.installed_at && props.initialValues.installed_at !== undefined) {
-          effectiveValues.installed_at = props.initialValues.installed_at
-        }
-        if (values.last_inspected_at === defaultValues.last_inspected_at && props.initialValues.last_inspected_at !== undefined) {
-          effectiveValues.last_inspected_at = props.initialValues.last_inspected_at
-        }
-      }
-      return (zodResolver(validationSchema) as Resolver<CreateAssetInput>)(effectiveValues, context, options)
-    },
+    resolver: zodResolver(validationSchema),
   })
   useEffect(() => {
     if (!(props.serverError instanceof AssetsApiError)) return
@@ -208,9 +181,7 @@ export function AssetForm(props: AssetFormProps) {
               min="0001-01-01T00:00"
               max="9999-12-31T23:59:59.999"
               aria-invalid={Boolean(errors.last_inspected_at)}
-              {...register('last_inspected_at', {
-                setValueAs: (value) => (value === '' ? null : value),
-              })}
+              {...register('last_inspected_at')}
             />
             <FieldError>
               {errors.last_inspected_at

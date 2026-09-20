@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 
 const startup = vi.hoisted(() => ({ initialize: vi.fn(), listen: vi.fn(), end: vi.fn() }))
-vi.mock('./app.js', () => ({ app: { listen: startup.listen } }))
+vi.mock('./bootstrap.js', () => ({ app: { listen: startup.listen } }))
 vi.mock('./config.js', () => ({ env: { PORT: 3001 } }))
 vi.mock('./db/index.js', () => ({ pool: { end: startup.end } }))
 vi.mock('./db/initialize.js', () => ({ initializeAssets: startup.initialize }))

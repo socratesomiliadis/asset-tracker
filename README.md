@@ -39,11 +39,12 @@ The backend reads `.env`; Compose credentials are configured separately in `dock
 
 ```text
 frontend/src/
-  pages/          Filters, selection, pagination, and page composition
+  pages/          Page composition, local state transitions, selection, and pagination
   components/     Lists, details, forms, maps, and shared UI
-  hooks/          Queries, mutations, and map camera behavior
-  lib/            HTTP client, dates, markers, and map configuration
+  hooks/          Queries, mutations, map camera and marker behavior
+  lib/            HTTP contracts, cache policy, form conversion, dates, and map configuration
 backend/src/
+  bootstrap.ts    Wires the concrete application dependencies
   routes/         Request validation and HTTP responses
   services/       Application operations and merged-update validation
   repositories/   Database queries and response mapping
@@ -52,7 +53,11 @@ backend/src/
 shared/src/       Zod schemas, domain types, and constants
 ```
 
-TanStack Query owns server data; React state holds UI choices. Mutations invalidate asset queries. Shared Zod schemas validate forms, API requests, and seed data, while PostgreSQL enforces required fields, enums, coordinate ranges, and inspection-after-installation ordering.
+TanStack Query owns server data. A reducer colocated with `AssetsPage` owns filters, selection, pagination, and a single active dialog, keeping transitions beside the controls that trigger them. Mutation hooks share one cache policy: cancel stale detail reads, cache the saved response, and invalidate list/map variants; deletion also removes the detail cache. Page callbacks only choose the next view.
+
+Raw form values have their own schema and convert to validated API inputs through a typed Zod pipeline. Shared schemas also validate successful HTTP responses before they enter the cache; malformed JSON or response shapes produce a controlled client error. PostgreSQL enforces required fields, enums, coordinate ranges, and inspection-after-installation ordering.
+
+The backend app and router accept their dependencies explicitly; the service receives its repository through its constructor. `bootstrap.ts` connects the real implementations, while tests supply lightweight substitutes without module-level mocks. Domain validation errors are translated into HTTP responses at the middleware boundary.
 
 Migrations are committed in `backend/drizzle`. After schema changes, use `pnpm db:generate`, review the SQL, then run `pnpm db:migrate`. `pnpm db:check` checks migration consistency.
 
@@ -119,7 +124,7 @@ Errors use `{ error: { code, message, details? } }`: invalid input returns `400`
 ## Decisions and deliberate limits
 
 - **PostgreSQL without PostGIS:** Constraints, transactions, and migrations suit structured asset data. Numeric coordinates and bounding-box comparisons cover this dataset; distance or polygon queries would justify reconsidering PostGIS. Longitude filtering handles wrapped maps and antimeridian crossings.
-- **Explicit area search:** A button avoids fetching on every pan. The map collects lightweight points separately from list pagination and clusters them in the browser. Fetching every matching point is suitable here, but would need viewport retrieval or server-side clustering at larger scale.
+- **Explicit area search:** A button avoids fetching on every pan. The map collects lightweight points separately from list pagination and clusters them in the browser. Visible markers are reconciled by asset/cluster ID, retaining buttons and keyboard focus through movement and updates. Fetching every matching point is suitable here, but would need viewport retrieval or server-side clustering at larger scale.
 - **MapLibre and OpenFreeMap:** Interactive vector maps without an API key. Maps load lazily, use a shared customized Positron style, and retain upstream licenses in `frontend/src/lib/map-style/`. Module-load or initialization failures show a local fallback, preserving the list and typed coordinates. Public tiles remain an external dependency.
 - **Offset pagination:** Simple for a small dataset and previous/next navigation. Concurrent changes can shift pages; list and count queries do not share a transaction snapshot.
 - **Assignment scope:** Authentication, deployment, mobile optimization, accessibility audits, and production observability are intentionally omitted. Health checks report HTTP liveness only. The app is intended for local evaluation.

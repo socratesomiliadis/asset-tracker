@@ -1,19 +1,17 @@
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const serviceMock = vi.hoisted(() => ({
+const serviceMock = {
+  findMapPoints: vi.fn(),
   findMany: vi.fn(),
   findById: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
-}))
+}
 
-vi.mock('../services/asset.service.js', () => ({
-  assetService: serviceMock,
-}))
-
-import { app } from '../app.js'
+import { createApp } from '../app.js'
+const app = createApp({ assetService: serviceMock, corsOrigin: 'http://localhost:5173' })
 
 const asset = {
   id: '17fc695a-07a0-4a6e-8822-e8f36c031199',

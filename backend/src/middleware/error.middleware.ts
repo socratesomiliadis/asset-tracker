@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler } from 'express'
 import { ApiError } from '../errors/api.error.js'
+import { AssetValidationError } from '../errors/asset-validation.error.js'
 import { INSPECTION_DATE_ERROR } from '@asset-tracker/shared'
 
 function isInspectionConstraintError(error: unknown): boolean {
@@ -15,6 +16,9 @@ export const errorHandler: ErrorRequestHandler = (
   response,
   _next,
 ) => {
+  if (error instanceof AssetValidationError) {
+    error = new ApiError(400, 'INVALID_REQUEST_BODY', 'Invalid request body', error.details)
+  }
   // Keep the database guard effective, including when concurrent edits race validation.
   if (isInspectionConstraintError(error)) {
     error = new ApiError(400, 'INVALID_REQUEST_BODY', INSPECTION_DATE_ERROR, {
