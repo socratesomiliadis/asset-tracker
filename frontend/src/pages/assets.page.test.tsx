@@ -5,7 +5,7 @@ import type { DeleteAssetDialog } from '@/components/delete-asset-dialog'
 import type { AssetDetails } from '@/components/asset-details'
 import type { AssetMap } from '@/components/asset-map'
 import type { ComponentProps } from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Asset } from '@asset-tracker/shared'
@@ -68,6 +68,14 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); vi.clearAllMocks() })
 function mount() { render(<QueryClientProvider client={client}><AssetsPage /></QueryClientProvider>) }
 
+function expectResultsSummary(total: number, scope: string) {
+  for (const name of ['Asset list', 'Asset map']) {
+    const panel = within(screen.getByRole('region', { name }))
+    expect(panel.getByText(`${total} matching ${total === 1 ? 'asset' : 'assets'}`)).toBeTruthy()
+    expect(panel.getByText(scope)).toBeTruthy()
+  }
+}
+
 it('clears type, status, area, pagination, and selection together', async () => {
   mount()
   await screen.findByText('Asset 0')
@@ -97,6 +105,7 @@ it('loads all map pages with bounded requests and selects assets outside the lis
   rows = Array.from({ length: 205 }, (_, i) => ({ ...asset, id: String(i), name: `Asset ${i}` }))
   mount()
   await screen.findByText('Map assets: 205')
+  expectResultsSummary(205, 'All locations')
   expect(screen.getByText('1–25 of 205')).toBeTruthy()
   expect(screen.queryByText('Asset 204')).toBeNull()
   expect(vi.mocked(getAssets).mock.calls.map(([params]) => [params.limit, params.offset]))
@@ -106,6 +115,7 @@ it('loads all map pages with bounded requests and selects assets outside the lis
   expect(await screen.findByText('Details: Asset 204')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
   await screen.findByText('26–50 of 205')
+  expectResultsSummary(205, 'All locations')
   expect(screen.getByText('Map assets: 205')).toBeTruthy()
   expect(await screen.findByText('Details: Asset 204')).toBeTruthy()
   expect(vi.mocked(getAssets).mock.calls.filter(([params]) => params.limit === 100)).toHaveLength(3)
@@ -133,6 +143,7 @@ it('applies type, status, and area filters to every map page and resets selectio
   expect(await screen.findByText('Details: Match 101')).toBeTruthy()
   fireEvent.click(screen.getByText('Search area'))
   await screen.findByText('Map assets: 102')
+  expectResultsSummary(102, 'Searched area')
   expect(screen.queryByText('Details: Match 101')).toBeNull()
   const areaRequests = vi.mocked(getAssets).mock.calls
     .map(([params]) => params).filter((params) => params.limit === 100 && params.minLat !== undefined)
@@ -141,6 +152,7 @@ it('applies type, status, and area filters to every map page and resets selectio
   })))
   fireEvent.click(screen.getByText('Clear area'))
   await screen.findByText('Map assets: 103')
+  expectResultsSummary(103, 'All locations')
 })
 
 it('reports a failed later map page without presenting partial results and retries independently', async () => {
@@ -153,6 +165,8 @@ it('reports a failed later map page without presenting partial results and retri
   })
   mount()
   await screen.findByText('Map unavailable')
+  expect(within(screen.getByRole('region', { name: 'Asset map' })).getByText('Assets unavailable')).toBeTruthy()
+  expect(within(screen.getByRole('region', { name: 'Asset list' })).getByText('101 matching assets')).toBeTruthy()
   expect(screen.getByText('1–25 of 101')).toBeTruthy()
   expect(screen.queryByText('Marker Asset 0')).toBeNull()
   failMap = false

@@ -7,6 +7,7 @@ import type { AssetMapBounds } from '@/components/asset-map'
 import { LazyAssetMap } from '@/components/lazy-maps'
 import { AssetFilters } from '@/components/asset-filters'
 import { AssetList } from '@/components/asset-list'
+import { AssetResultsSummary } from '@/components/asset-results-summary'
 import { CreateAssetDrawer } from '@/components/create-asset-drawer'
 import { DeleteAssetDialog } from '@/components/delete-asset-dialog'
 import { EditAssetDrawer } from '@/components/edit-asset-drawer'
@@ -122,19 +123,16 @@ export function AssetsPage() {
             } as CSSProperties
           }
         >
-          <Card className="min-h-0 gap-0 py-0">
+          <Card role="region" aria-labelledby="asset-list-heading" className="min-h-0 gap-0 py-0">
             <CardHeader className="shrink-0 gap-4 border-b py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Asset list</p>
-                  <p className="text-xs text-muted-foreground">
-                    {assetsQuery.isError
-                      ? 'Assets unavailable'
-                      : assetsQuery.data
-                      ? `${assetsQuery.data.meta.total} matching assets`
-                      : 'Loading assets'}
-                  </p>
-                </div>
+              <div className="space-y-1">
+                <h2 id="asset-list-heading" className="font-medium">Asset list</h2>
+                <AssetResultsSummary
+                  total={assetsQuery.data?.meta.total}
+                  hasActiveAreaSearch={Boolean(mapBounds)}
+                  isError={assetsQuery.isError}
+                  isFetching={assetsQuery.isFetching}
+                />
               </div>
               <AssetFilters
                 onClearAllFilters={clearAllFilters}
@@ -188,16 +186,15 @@ export function AssetsPage() {
             </CardFooter>
           </Card>
 
-          <Card className="min-h-0 gap-0 py-0">
-            <CardHeader className="flex shrink-0 items-center justify-between gap-3 border-b py-4 [.border-b]:pb-4">
-              <p className="font-medium">Asset map</p>
-              {!mapQuery.isSuccess || mapQuery.isFetching ? (
-                <p role="status" className="text-xs text-muted-foreground">
-                  {mapQuery.isFetching
-                    ? mapQuery.data ? 'Refreshing…' : 'Loading…'
-                    : mapQuery.isError ? 'Unable to load' : 'Waiting to load…'}
-                </p>
-              ) : null}
+          <Card role="region" aria-labelledby="asset-map-heading" className="min-h-0 gap-0 py-0">
+            <CardHeader className="shrink-0 gap-1 border-b py-4 [.border-b]:pb-4">
+              <h2 id="asset-map-heading" className="font-medium">Asset map</h2>
+              <AssetResultsSummary
+                total={mapQuery.data?.length}
+                hasActiveAreaSearch={Boolean(mapBounds)}
+                isError={mapQuery.isError}
+                isFetching={mapQuery.isFetching}
+              />
             </CardHeader>
             <CardContent className="min-h-0 flex-1 p-3">
               <LazyAssetMap

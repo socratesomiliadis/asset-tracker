@@ -18,11 +18,29 @@ test('cluster area search, create with map coordinates, recover a failed edit, a
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto('/')
-  await expect(page.getByText('150 matching assets')).toBeVisible()
+  const list = page.getByRole('region', { name: 'Asset list', exact: true })
+  const map = page.getByRole('region', { name: 'Asset map', exact: true })
+  for (const panel of [list, map]) {
+    await expect(panel.getByText('150 matching assets')).toBeVisible()
+    await expect(panel.getByText('All locations')).toBeVisible()
+  }
+  await list.getByRole('button', { name: 'Next page' }).click()
+  await expect(list.getByText('26–50 of 150')).toBeVisible()
+  await expect(map.getByText('150 matching assets')).toBeVisible()
   await page.getByRole('button', { name: /^Expand cluster:/ }).first().click()
+  await expect(map.getByRole('button', { name: 'Search this area', exact: true })).toBeVisible()
+  await expect(list.getByText('150 matching assets')).toBeVisible()
   await page.getByRole('button', { name: 'Search this area', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Remove area filter' })).toBeVisible()
-  await expect(page.getByText('150 matching assets')).not.toBeVisible()
+  for (const panel of [list, map]) {
+    await expect(panel.getByText('Searched area', { exact: true })).toBeVisible()
+    await expect(panel.getByText('150 matching assets')).not.toBeVisible()
+  }
+  await expect(map.getByRole('button', { name: 'Search this area', exact: true })).not.toBeVisible()
+  await expect.poll(async () => map.getByText(/^\d+ matching assets?$/).textContent())
+    .toBe(await list.getByText(/^\d+ matching assets?$/).textContent())
+  await map.getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await expect(map.getByRole('button', { name: 'Search this area', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Add Asset', exact: true }).click()
   const form = page.getByRole('dialog', { name: 'Create asset', exact: true })
@@ -68,7 +86,8 @@ test('cluster area search, create with map coordinates, recover a failed edit, a
   await page.getByRole('button', { name: `Select ${name}`, exact: true }).click()
   await details.getByRole('button', { name: 'Delete', exact: true }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete asset', exact: true }).click()
-  await expect(page.getByText('150 matching assets')).toBeVisible()
+  await expect(list.getByText('150 matching assets')).toBeVisible()
+  await expect(map.getByText('150 matching assets')).toBeVisible()
   expect((await page.request.get(`/api/assets/${created.id}`)).status()).toBe(404)
   expect(errors).toEqual([])
 })

@@ -52,8 +52,10 @@ it.each([
     onRetry={vi.fn()} onSelectAsset={vi.fn()} onSearchArea={onSearchArea} />)
   const move = map.on.mock.calls.find(([event]) => event === 'moveend')![1]
   act(() => move({}))
+  expect(onSearchArea).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Search this area' }))
   expect(onSearchArea).toHaveBeenCalledExactlyOnceWith({ minLat: -90, maxLat: 90, minLng, maxLng })
+  expect(screen.queryByRole('button', { name: 'Search this area' })).toBeNull()
 })
 
 
@@ -74,6 +76,10 @@ it('offers area search after cluster navigation while ignoring automatic camera 
   const [, event] = map.easeTo.mock.lastCall!
   act(() => move(event ?? {}))
   expect(screen.getByRole('button', { name: 'Search this area' })).toBeTruthy()
+  expect(props.onSearchArea).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Search this area' }))
+  expect(props.onSearchArea).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('button', { name: 'Search this area' })).toBeNull()
 })
 
 it('renders only markers within the visible geographic bounds', () => {

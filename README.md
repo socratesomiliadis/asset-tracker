@@ -23,7 +23,7 @@ Compose waits for PostgreSQL to be healthy before migrations run. The shared bui
 - API: http://localhost:3001/api/assets
 - Health: http://localhost:3001/api/health
 
-**Using the map:** Pan or zoom, then click **Search this area** to apply a geographic filter. Click a cluster to zoom in, or an individual marker/list item to open its details. The list shows 25 rows per page; the map includes all matching assets.
+**Using the map:** Pan or zoom, then click **Search this area** to update both views. Until then, results retain their previous geographic scope, shown alongside the matching count in each panel. Click a cluster to zoom in, or an individual marker/list item to open its details. The list shows 25 rows per page; the map includes all matching assets, independently of the list page.
 
 Only PostgreSQL is containerized. Compose uses port `5432`, with database, username, and password `asset_tracker`. Data persists in the `postgres_data` volume: `pnpm db:down` stops the container without deleting data, and `pnpm db:up` starts it again. Use `pnpm db:logs` for database logs. To use an existing PostgreSQL instance, set `DATABASE_URL` in `.env` and skip Compose.
 
