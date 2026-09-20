@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": "24.x"
+  },
   "workspaces": [
     "frontend",
     "backend",
@@ -14,7 +17,7 @@
     "pretest": "pnpm --filter @asset-tracker/shared build",
     "test": "pnpm -r --if-present run test",
     "pretypecheck": "pnpm --filter @asset-tracker/shared build",
-    "typecheck": "pnpm -r --if-present run typecheck",
+    "typecheck": "pnpm -r --if-present run typecheck && tsc -p tsconfig.typecheck.json",
     "lint": "pnpm -r --if-present run lint",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
@@ -29,6 +32,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "concurrently": "^10.0.5"
+    "@types/node": "^24.13.5",
+    "concurrently": "^10.0.5",
+    "typescript": "^6.0.3"
   }
 }

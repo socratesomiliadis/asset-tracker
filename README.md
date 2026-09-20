@@ -6,6 +6,8 @@ A full-stack TypeScript app for managing 150 seeded infrastructure assets. Brows
 
 Prerequisites: **Node.js 24**, **pnpm 11.18.0** (pinned in `package.json`), and Docker with Compose. Run commands from the repository root.
 
+If using nvm, run `nvm install` and `nvm use` to select Node 24 from `.nvmrc`.
+
 ```bash
 cp .env.example .env
 pnpm install --frozen-lockfile
@@ -62,6 +64,8 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
+`pnpm typecheck` checks application code, tests, and tooling configurations across all workspaces, including the root Playwright tests. Backend and shared production builds exclude test files.
 
 Default tests cover validation, HTTP responses, startup sequencing, form behavior, filters, pagination, selection, dates, and map interactions. They mock database/network/map boundaries and require no running database or public tiles.
 

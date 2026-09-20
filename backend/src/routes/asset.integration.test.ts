@@ -2,6 +2,7 @@ import request from 'supertest'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Pool } from 'pg'
 import type { Express } from 'express'
+import type { AssetPage, MapAssetPage } from '@asset-tracker/shared'
 import { createTestDatabase } from '../../test/database.js'
 
 describe.skipIf(!process.env.TEST_DATABASE_URL)('asset API through PostgreSQL', () => {
@@ -62,22 +63,22 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('asset API through PostgreSQL', 
       await request(app).post('/api/assets').send({ ...input, ...patch }).expect(201)
     }
     const query = { type: 'sensor', status: 'warning', minLat: 40, maxLat: 42, minLng: -75, maxLng: -70, limit: 2 }
-    const first = (await request(app).get('/api/assets').query(query).expect(200)).body
-    const second = (await request(app).get('/api/assets').query({ ...query, offset: 2 }).expect(200)).body
+    const first: AssetPage = (await request(app).get('/api/assets').query(query).expect(200)).body
+    const second: AssetPage = (await request(app).get('/api/assets').query({ ...query, offset: 2 }).expect(200)).body
     expect(first.meta).toEqual({ total: 3, limit: 2, offset: 0 })
     expect(second.meta).toEqual({ total: 3, limit: 2, offset: 2 })
     expect([...first.data, ...second.data].map((asset) => asset.id)).toEqual(ids.sort())
-    const points = (await request(app).get('/api/assets/map').query({ ...query, limit: 100 }).expect(200)).body
+    const points: MapAssetPage = (await request(app).get('/api/assets/map').query({ ...query, limit: 100 }).expect(200)).body
     expect(points.meta.total).toBe(3)
     expect(points.data.map((point) => point.id)).toEqual(ids)
-    expect(Object.keys(points.data[0]).sort()).toEqual(['id', 'lat', 'lng', 'name', 'status', 'type'])
+    expect(Object.keys(points.data[0]!).sort()).toEqual(['id', 'lat', 'lng', 'name', 'status', 'type'])
   })
 
   it('queries both sides of the antimeridian in PostgreSQL', async () => {
     for (const lng of [-180, -179, 0, 179, 180]) {
       await request(app).post('/api/assets').send({ ...input, lng }).expect(201)
     }
-    const page = (await request(app).get('/api/assets').query({ minLat: 39, maxLat: 41, minLng: 170, maxLng: 190 }).expect(200)).body
+    const page: AssetPage = (await request(app).get('/api/assets').query({ minLat: 39, maxLat: 41, minLng: 170, maxLng: 190 }).expect(200)).body
     expect(page.meta.total).toBe(4)
     expect(page.data.map((asset) => asset.lng).sort((a, b) => a - b)).toEqual([-180, -179, 179, 180])
   })
